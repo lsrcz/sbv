@@ -1,0 +1,8 @@
+title: SBV
+description: SMT Based Verification in Haskell. Express properties about Haskell programs  and automatically prove them using SMT solvers.
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-minimal
+
+gems:
+  - jekyll-mentions
