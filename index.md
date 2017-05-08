@@ -13,7 +13,8 @@ Falsifiable. Counter-example:
   s0 = 32 :: Word8
 ```
 
-The function `prove` establishes theorem-hood, while `sat` finds any satisfying model. All satisfying models can be lazily computed using `allSat`. SBV can also perform static assertion checks, such as absence of division-by-0, and other user given properties.
+The function `prove` establishes theorem-hood, while `sat` finds any satisfying model. All satisfying models can be lazily computed using `allSat`. SBV can also perform static assertion checks, such as absence of division-by-0, and other user given properties. Furthermore, SBV can perform
+optimization, minimizing/maximizing arithmetic goals for their optimal values.
 
 Overview
 ========
