@@ -13,8 +13,12 @@ Falsifiable. Counter-example:
   s0 = 32 :: Word8
 ```
 
-The function `prove` establishes theorem-hood, while `sat` finds any satisfying model. All satisfying models can be lazily computed using `allSat`. SBV can also perform static assertion checks, such as absence of division-by-0, and other user given properties. Furthermore, SBV can perform
+The function `prove` establishes theorem-hood, while `sat` finds any satisfying model. All satisfying models can be computed using `allSat`. SBV can also perform static assertion checks, such as absence of division-by-0, and other user given properties. Furthermore, SBV can perform
 optimization, minimizing/maximizing arithmetic goals for their optimal values.
+
+SBV also allows for an incremental mode: Users are given a handle to the SMT solver as their programs execute, and they can issue SMTLib commands
+programmatically, query values, and direct the interaction using a high-level typed API. The incremental mode also allows for creation of constraints
+based on the current model, and access to internals of SMT solvers for advanced users. See the `runSMT` and `query` commands for details.
 
 Overview
 ========
@@ -52,22 +56,18 @@ The user can construct ordinary Haskell programs using these types, which behave
 
 Picking the SMT solver to use
 =============================
-The SBV library uses third-party SMT solvers via the standard [SMT-Lib interface](http://smtlib.cs.uiowa.edu/). Use the following `import` statements to pick the corresponding solver:
+The SBV library uses third-party SMT solvers via the standard [SMT-Lib interface](http://smtlib.cs.uiowa.edu/). The following solvers
+are supported:
 
-  - `import Data.SBV.Bridge.ABC`<br>
-     Uses [ABC](http://www.eecs.berkeley.edu/~alanmi/abc/) from University of Berkeley
-  - `import Data.SBV.Bridge.Boolector`<br>
-     Uses [Boolector](http://fmv.jku.at/boolector/) from Johannes Kepler University
-  - `import Data.SBV.Bridge.CVC4`<br>
-     Uses [CVC4](http://cvc4.cs.nyu.edu) from New York University and the University of Iowa
-  - `import Data.SBV.Bridge.MathSAT`<br>
-     Uses [MathSAT](http://mathsat.fbk.eu/) from FBK and DISI-University of Trento
-  - `import Data.SBV.Bridge.Yices`<br>
-     Uses [Yices](http://yices.csl.sri.com) from SRI
-  - `import Data.SBV.Bridge.Z3`<br>
-     Uses [Z3](http://github.com/Z3Prover/z3/wiki) from Microsoft
+  - [ABC](http://www.eecs.berkeley.edu/~alanmi/abc/) from University of Berkeley
+  - [Boolector](http://fmv.jku.at/boolector/) from Johannes Kepler University
+  - [CVC4](http://cvc4.cs.nyu.edu) from New York University and the University of Iowa
+  - [MathSAT](http://mathsat.fbk.eu/) from FBK and DISI-University of Trento
+  - [Yices](http://yices.csl.sri.com) from SRI
+  - [Z3](http://github.com/Z3Prover/z3/wiki) from Microsoft
  
-If you simply `import Data.SBV`, then the solver defaults to Microsoft's Z3.
+Most functions have two variants: For instance `prove`/`proveWith`. The former uses the default solver, which is currently Z3.
+The latter expects you to pass it a configuration that picks the solver. The valid values are `abc`, `boolector`, `cvc4`, `mathSAT`, `yices`, and `z3`.
 
 See [versions](http://github.com/LeventErkok/sbv/blob/master/SMTSolverVersions.md) for a listing of the versions of these tools SBV has been tested with. Please report if you see any discrepancies!
 
