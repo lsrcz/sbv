@@ -23,7 +23,7 @@ based on the current model, and access to internals of SMT solvers for advanced 
 Overview
 ========
 
-  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: August 29th, 2017.)
+  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: September 6th, 2017.)
   - [Release Notes](http://github.com/LeventErkok/sbv/tree/master/CHANGES.md). 
 
 SBV library provides support for dealing with symbolic values in Haskell. It introduces the types:
