@@ -237,7 +237,7 @@ module Data.SBV (
 
   -- * SMT Interface: Configurations and solvers
   , SMTConfig(..), Timing(..), SMTLibVersion(..), Solver(..), SMTSolver(..)
-  , boolector, cvc4, yices, z3, mathSAT, abc, defaultSolverConfig, defaultSMTCfg, sbvCheckSolverInstallation, sbvAvailableSolvers
+  , boolector, cvc4, yices, z3, mathSAT, abc, veriT, defaultSolverConfig, defaultSMTCfg, sbvCheckSolverInstallation, sbvAvailableSolvers
   , setLogic, setOption, setInfo, setTimeOut
 
   -- * Symbolic computations
@@ -303,6 +303,7 @@ defaultSolverConfig Boolector = boolector
 defaultSolverConfig CVC4      = cvc4
 defaultSolverConfig MathSAT   = mathSAT
 defaultSolverConfig ABC       = abc
+defaultSolverConfig VeriT     = veriT
 
 -- | Return the known available solver configs, installed on your machine.
 sbvAvailableSolvers :: IO [SMTConfig]

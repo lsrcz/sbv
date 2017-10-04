@@ -8,6 +8,8 @@
   * Export queryDebug from the Control module, allowing custom queries to print
     debugging messages with the verbose flag is set.
 
+  * Support for the veriT SMT solver (http://www.verit-solver.org/)
+
 ### Version 7.3, 2017-09-06
 
   * Query mode: Add support for arrays in query mode. Thanks to Brad Hardy for

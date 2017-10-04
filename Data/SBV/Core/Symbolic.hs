@@ -1246,7 +1246,7 @@ data RoundingMode = RoundNearestTiesToEven  -- ^ Round to nearest representable 
 -- | 'RoundingMode' kind
 instance HasKind RoundingMode
 
--- | Solver configuration. See also 'z3', 'yices', 'cvc4', 'boolector', 'mathSAT', etc. which are instantiations of this type for those solvers, with
+-- | Solver configuration. See also 'z3', 'yices', 'cvc4', 'boolector', 'mathSAT', 'veriT', etc. which are instantiations of this type for those solvers, with
 -- reasonable defaults. In particular, custom configuration can be created by varying those values. (Such as @z3{verbose=True}@.)
 --
 -- Most fields are self explanatory. The notion of precision for printing algebraic reals stems from the fact that such values does
@@ -1322,6 +1322,7 @@ data Solver = Z3
             | CVC4
             | MathSAT
             | ABC
+            | VeriT
             deriving (Show, Enum, Bounded)
 
 -- | An SMT solver

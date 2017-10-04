@@ -137,6 +137,7 @@ Library
                   , Data.SBV.Provers.CVC4
                   , Data.SBV.Provers.Yices
                   , Data.SBV.Provers.Z3
+                  , Data.SBV.Provers.VeriT
                   , Data.SBV.Provers.MathSAT
                   , Data.SBV.Provers.ABC
                   , Data.SBV.Utils.Boolean
@@ -228,6 +229,7 @@ Test-Suite SBVTest
                   , TestSuite.Queries.Int_Boolector
                   , TestSuite.Queries.Int_CVC4
                   , TestSuite.Queries.Int_Mathsat
+                  , TestSuite.Queries.Int_VeriT
                   , TestSuite.Queries.Int_Yices
                   , TestSuite.Queries.Int_Z3
                   , TestSuite.Queries.Interpolants

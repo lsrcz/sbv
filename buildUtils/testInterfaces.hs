@@ -14,7 +14,7 @@ solverName :: SMTConfig -> String
 solverName = show . name . solver
 
 main :: IO ()
-main = do let allSolvers = map (\s -> (solverName s, s)) [abc, boolector, cvc4, mathSAT, yices, z3]
+main = do let allSolvers = map (\s -> (solverName s, s)) [abc, boolector, cvc4, mathSAT, yices, z3, veriT]
 
           args <- getArgs
 

@@ -22,7 +22,7 @@ module Data.SBV.Provers.Prover (
        , runSMT, runSMTWith
        , SatModel(..), Modelable(..), displayModels, extractModels
        , getModelDictionaries, getModelValues, getModelUninterpretedValues
-       , boolector, cvc4, yices, z3, mathSAT, abc, defaultSMTCfg
+       , boolector, cvc4, yices, z3, mathSAT, abc, veriT, defaultSMTCfg
        ) where
 
 
@@ -61,6 +61,7 @@ import qualified Data.SBV.Provers.Yices      as Yices
 import qualified Data.SBV.Provers.Z3         as Z3
 import qualified Data.SBV.Provers.MathSAT    as MathSAT
 import qualified Data.SBV.Provers.ABC        as ABC
+import qualified Data.SBV.Provers.VeriT      as VeriT
 
 mkConfig :: SMTSolver -> SMTLibVersion -> [Control.SMTOption] -> SMTConfig
 mkConfig s smtVersion startOpts = SMTConfig { verbose             = False
@@ -109,6 +110,11 @@ mathSAT = mkConfig MathSAT.mathSAT SMTLib2 [allOnStdOut]
 -- | Default configuration for the ABC synthesis and verification tool.
 abc :: SMTConfig
 abc = mkConfig ABC.abc SMTLib2 [allOnStdOut]
+
+-- | Default configuration for the VeriT SMT solver
+veriT :: SMTConfig
+veriT = mkConfig VeriT.veriT SMTLib2 [allOnStdOut]
+
 
 -- | The default solver used by SBV. This is currently set to z3.
 defaultSMTCfg :: SMTConfig

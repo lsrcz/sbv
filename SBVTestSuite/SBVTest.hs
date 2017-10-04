@@ -72,6 +72,7 @@ import qualified TestSuite.Queries.Int_Boolector
 import qualified TestSuite.Queries.Int_CVC4
 import qualified TestSuite.Queries.Int_Mathsat
 import qualified TestSuite.Queries.Int_Yices
+import qualified TestSuite.Queries.Int_VeriT
 import qualified TestSuite.Queries.Int_Z3
 import qualified TestSuite.Queries.Interpolants
 import qualified TestSuite.Queries.Uninterpreted
@@ -120,9 +121,10 @@ localOnlyTests = testGroup "SBVLocalOnlyTests" [
                    , TestSuite.Queries.Int_CVC4.tests
                    , TestSuite.Queries.Int_Mathsat.tests
                    , TestSuite.Queries.Int_Yices.tests
+                   , TestSuite.Queries.Int_VeriT.tests
                    ]
 
--- | Remaining tests
+-- | Remaining tests; these will be run both locally and remotely on CI all the time
 otherTests :: TestTree
 otherTests = testGroup "SBVOtherTests" [
                  TestSuite.Arrays.Memory.tests
