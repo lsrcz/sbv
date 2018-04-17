@@ -1,6 +1,9 @@
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE Rank2Types          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE Rank2Types                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -18,9 +21,7 @@
 
 module Data.SBV.Tools.SString (
         -- * The symbolic "character"
-        SChar
-        -- * Conversion to/from SWord8
-        , ord, chr
+        SChar, IsSChar(..)
         -- * Length
         , length, null
         -- * Deconstructing/Reconstructing
@@ -71,22 +72,40 @@ import qualified Data.List as L (tails, isSuffixOf, isPrefixOf, isInfixOf)
 -- hand, is a unicode beast; so there isn't a 1-1 correspondence between a Haskell character and an
 -- SBV character. This limitation is due to the SMT-solvers only supporting this particular subset,
 -- which may be relaxed in future versions.
-type SChar = SWord8
+newtype SChar = SChar SWord8
+              deriving (Mergeable, EqSymbolic, OrdSymbolic)
 
--- | The 'ord' of a character. Note that this is essentially identity function due to
--- our representation, appropriately typed to have any numeric type.
-ord :: SIntegral a => SChar -> SBV a
-ord = sFromIntegral
+-- | Captures literal characters conveniently.
+class IsSChar c where
+  chr :: c    -> SChar
 
--- | Conversion from a value to a character. If the value is not in the range
--- 0..255, then the output is underspecified.
---
--- >>> prove $ \x -> (0 .<= x &&& x .< (255 :: SInteger)) ==> ord (chr x) .== x
--- Q.E.D.
--- >>> prove $ \x -> chr ((ord x) :: SInteger) .== x
--- Q.E.D.
-chr :: SIntegral a => SBV a -> SChar
-chr = sFromIntegral
+-- | Haskell Char's fit, so long as they are in the Latin-1 character set
+instance IsSChar Char where
+  -- | Conversion from regular Haskell characters.
+  --
+  -- >>> prove $ \x -> (0 .<= x &&& x .< (255 :: SInteger)) ==> ord (chr x) .== x
+  -- Q.E.D.mi
+  -- >>> prove $ \x -> chr ((ord x) :: SInteger) .== x
+  -- Q.E.D.mi
+  chr c
+    | o <= 255
+    = SChar (fromIntegral o)
+    | True
+    = error $ unlines [ "The Haskell character " ++ show c ++ " doesn't fit into an SChar!"
+                      , ""
+                      , "   Ord: " ++ show o
+                      , ""
+                      , "Must be less than 256!"
+                      ]
+    where o = C.ord c
+
+-- | SWord8 is the "internal" representation
+instance IsSChar SWord8 where
+   chr = SChar
+
+-- | The 'ord' of a character. Note that this is essentially identity function due to our representation.
+ord :: SChar -> SWord8
+ord (SChar s) = s
 
 -- | Length of a string.
 --
@@ -118,7 +137,7 @@ null s
 --
 -- >>> prove $ \c -> head (charToStr c) .== c
 -- Q.E.D.
-head :: SString -> SWord8
+head :: SString -> SChar
 head = (`strToCharAt` 0)
 
 -- | @`tail`@ returns the tail of a string. Unspecified if the string is empty.
@@ -144,8 +163,8 @@ tail s
 -- Q.E.D.
 -- >>> prove $ \c -> length (charToStr c) .== 1
 -- Q.E.D.
-charToStr :: SWord8 -> SString
-charToStr = lift1 StrUnit (Just $ \cv -> [C.chr (fromIntegral cv)])
+charToStr :: SChar -> SString
+charToStr (SChar cv) = lift1 StrUnit (Just $ \c -> [C.chr (fromIntegral c)]) cv
 
 -- | @`strToStrAt` s offset@. Substring of length 1 at @offset@ in @s@.
 --
@@ -165,12 +184,12 @@ strToStrAt s offset = subStr s offset 1
 -- Q.E.D.
 -- >>> prove $ \s i c -> s `strToCharAt` i .== c ==> indexOf s (charToStr c) .<= i
 -- Q.E.D.
-strToCharAt :: SString -> SInteger -> SWord8
+strToCharAt :: SString -> SInteger -> SChar
 strToCharAt s i
   | Just cs <- unliteral s, Just ci <- unliteral i, ci >= 0, ci < genericLength cs, let c = C.ord (cs `genericIndex` ci), c >= 0, c < 256
-  = literal (fromIntegral c)
+  = SChar $ literal (fromIntegral c)
   | True
-  = SBV (SVal w8 (Right (cache (y (s `strToStrAt` i)))))
+  = SChar $ SBV (SVal w8 (Right (cache (y (s `strToStrAt` i)))))
   where w8      = KBounded False 8
         -- This is tricker than it needs to be, but necessary since there's
         -- no SMTLib function to extract the character from a string. Instead,
@@ -183,7 +202,7 @@ strToCharAt s i
                      return c
 
 -- | Short cut for 'strToCharAt'
-(.!!) :: SString -> SInteger -> SWord8
+(.!!) :: SString -> SInteger -> SChar
 (.!!) = strToCharAt
 
 -- | @`implode` cs@ is the string of length @|cs|@ containing precisely those
@@ -223,11 +242,11 @@ infixr 5 .++
 -- >>> prove $ \c -> bnot (c `elem` "")
 -- Q.E.D.
 elem :: SChar -> SString -> SBool
-c `elem` s
- | Just cs <- unliteral s, Just cc <- unliteral c
+c@(SChar w8) `elem` s
+ | Just cs <- unliteral s, Just cc <- unliteral w8
  = literal (C.chr (fromIntegral cc) `P.elem` cs)
  | Just cs <- unliteral s                            -- If only the second string is concrete, element-wise checking is still much better!
- = bAny (c .==) $ map (literal . fromIntegral . C.ord) cs
+ = bAny (w8 .==) $ map (literal . fromIntegral . C.ord) cs
  | True
  = charToStr c `isInfixOf` s
 
@@ -412,7 +431,7 @@ natToStr i
 -- >>> prove $ \c -> isLower c ==> toLower (toUpper c) .== c
 -- Q.E.D.
 toLower :: SChar -> SChar
-toLower c = ite (isUpper c) (chr o + 32) c
+toLower c = ite (isUpper c) (chr (o + 32)) c
   where o = ord c :: SWord8
 
 -- | Convert to upper-case. N.B. There are three special cases!
@@ -432,8 +451,8 @@ toLower c = ite (isUpper c) (chr o + 32) c
 -- >>> prove $ \c -> isUpper c ==> toUpper (toLower c) .== c
 -- Q.E.D.
 toUpper :: SChar -> SChar
-toUpper c = ite (isLower c &&& o `notElem` "\181\223\255") (chr (o - 32)) c
-   where o = ord c :: SWord8
+toUpper c = ite (isLower c &&& c `notElem` "\181\223\255") (chr (o - 32)) c
+   where o = ord c
 
 -- | Is this a control character? Control characters are essentially the non-printing characters.
 --
