@@ -23,7 +23,7 @@ based on the current model, and access to internals of SMT solvers for advanced 
 Overview
 ========
 
-  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: March 18th, 2018.)
+  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: April 29th, 2018.)
   - [Release Notes](http://github.com/LeventErkok/sbv/tree/master/CHANGES.md). 
 
 SBV library provides support for dealing with symbolic values in Haskell. It introduces the types:
@@ -35,6 +35,8 @@ SBV library provides support for dealing with symbolic values in Haskell. It int
   - `SReal`: Symbolic infinite precision algebraic reals (signed).
   - `SFloat`: IEEE-754 single precision floating point number. (`Float`.)
   - `SDouble`: IEEE-754 double precision floating point number. (`Double.`)
+  - `SChar`: Symbolic characters. (Currently Latin-1, but will be unicode in the future.)
+  - `SString`: Symbolic strings.
   - Arrays of symbolic values.
   - Symbolic enumerations, for arbitrary user-defined enumerated types.
   - Symbolic polynomials over GF(2^n ), polynomial arithmetic, and CRCs.
