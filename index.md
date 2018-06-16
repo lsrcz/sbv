@@ -23,7 +23,7 @@ based on the current model, and access to internals of SMT solvers for advanced 
 Overview
 ========
 
-  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: May 18th, 2018.)
+  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: June 15th, 2018.)
   - [Release Notes](http://github.com/LeventErkok/sbv/tree/master/CHANGES.md). 
 
 SBV library provides support for dealing with symbolic values in Haskell. It introduces the types:
@@ -50,6 +50,7 @@ The user can construct ordinary Haskell programs using these types, which behave
   - checked for satisfiability (the `sat`, and `allSat` functions),
   - checked for assertion violations (the `safe` function with `sAssert` calls),
   - used in synthesis (the `sat` function with existentials),
+  - checked for machine-arithmetic overflow/underflow conditions,
   - optimized with respect to cost functions (the `optimize`, `maximize`, and `minimize` functions),
   - quick-checked,
   - used for generating Haskell and C test vectors (the `genTest` function),
