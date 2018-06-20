@@ -3,6 +3,23 @@
 
 * Latest Hackage released version: 7.9, 2018-06-15
 
+### Version 7.9.5, Not yet released
+
+  * Add 'CheckedArithmetic' class, which provides bit-vector arithmetic
+    operations that do automatic underflow/overflow checking. The operations
+    follow their regular counter-parts, with an exclamation mark added at
+    the end: +!, -!, *!, /!. There is also negateChecked, for the same
+    function on unary negation. If you program using these functions,
+    then you can call 'safe' on the resulting programs to make sure
+    these operations never cause underflow and overflow conditions.
+
+  * Similar to above, add 'sFromIntegralChecked', providing similar support
+    for casts.
+
+  * Add "Documentation.SBV.Examples.BitPrecise.BrokenSearch.hs" to show the
+    use of overflow checking utilities, using the classic broken binary search
+    example from http://ai.googleblog.com/2006/06/extra-extra-read-all-about-it-nearly.html
+
 ### Version 7.9, 2018-06-15
  
   * Add support for bit-vector arithmetic underflow/overflow detection. The new
