@@ -149,7 +149,7 @@ module Data.SBV (
   -- $sequenes
   , Sequence(..), SSequence
   -- * Arrays of symbolic values
-  , SymArray(..), SArray, SFunArray, mkSFunArray
+  , SymArray(..), SArray, SFunArray
 
   -- * Creating symbolic values
   -- ** Single value
