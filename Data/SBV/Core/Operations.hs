@@ -39,8 +39,8 @@ module Data.SBV.Core.Operations
   , svBlastLE, svBlastBE
   , svAddConstant, svIncrement, svDecrement
   -- ** Basic array operations
-  , SArr,        readSArr,    writeSArr,    mergeSArr,    newSArr,    eqSArr
-  , SFunArr(..), readSFunArr, writeSFunArr, mergeSFunArr, newSFunArr, newSFunArrInState
+  , SArr,         readSArr,     writeSArr,     mergeSArr,     newSArr,     eqSArr
+  , SFunArr(..),  readSFunArr,  writeSFunArr,  mergeSFunArr,  newSFunArr
   -- Utils
   , mkSymOp
   )
@@ -845,7 +845,7 @@ mergeSArr t (SArr ainfo a) (SArr _ b) = SArr ainfo $ cache h
                   k `seq` modifyState st rArrayMap upd $ modifyIncState st rNewArrs upd
                   return k
 
--- | Create a named new array, with an optional initial value
+-- | Create a named new array
 newSArr :: (Kind, Kind) -> (Int -> String) -> Symbolic SArr
 newSArr ainfo mkNm = do
     st <- ask
@@ -967,9 +967,11 @@ writeSFunArr (SFunArr (ak, bk) f) a b
 -- Intuitively: @mergeArrays cond a b = if cond then a else b@.
 -- Merging pushes the if-then-else choice down on to elements
 mergeSFunArr :: SVal -> SFunArr -> SFunArr -> SFunArr
-mergeSFunArr t (SFunArr ainfo@(sourceKind, targetKind) a) (SFunArr binfo b)
+mergeSFunArr t array1@(SFunArr ainfo@(sourceKind, targetKind) a) array2@(SFunArr binfo b)
   | ainfo /= binfo
   = error $ "Data.SBV.mergeSFunArr: Impossible happened, merging incompatbile arrays: " ++ show (ainfo, binfo)
+  | Just test <- svAsBool t
+  = if test then array1 else array2
   | True
   = SFunArr ainfo $ cache c
   where c st = do ai <- uncacheFAI a st
@@ -1022,27 +1024,22 @@ mergeSFunArr t (SFunArr ainfo@(sourceKind, targetKind) a) (SFunArr binfo b)
 
                                    return j
 
--- | Create a named new array, with an optional initial value
+-- | Create a named new array
 newSFunArr :: (Kind, Kind) -> (Int -> String) -> Symbolic SFunArr
 newSFunArr (ak, bk) mkNm = do st <- ask
-                              j <- liftIO $ newSFunArrInState st (ak, bk) mkNm
+                              j <- liftIO $ do fArrMap <- R.readIORef (rFArrayMap st)
+                                               memoTable <- R.newIORef IMap.empty
+
+                                               let j                 = FArrayIndex $ IMap.size fArrMap
+                                                   mkUninitialized i = svUninterpreted bk (mkNm (unFArrayIndex j) ++ "_uninitializedRead") Nothing [i]
+
+                                                   upd = IMap.insert (unFArrayIndex j) (mkUninitialized, memoTable)
+
+                                               j `seq` modifyState st rFArrayMap upd (return ())
+
+                                               return j
 
                               return $ SFunArr (ak, bk) $ cache $ const $ return j
-
--- | Create a new functional array in the given state
-newSFunArrInState :: State -> (Kind, Kind) -> (Int -> String) -> IO FArrayIndex
-newSFunArrInState st (_, bk) mkNm = do
-        fArrMap <- R.readIORef (rFArrayMap st)
-        memoTable <- R.newIORef IMap.empty
-
-        let j                 = FArrayIndex $ IMap.size fArrMap
-            mkUninitialized i = svUninterpreted bk (mkNm (unFArrayIndex j) ++ "_uninitializedRead") Nothing [i]
-
-            upd = IMap.insert (unFArrayIndex j) (mkUninitialized, memoTable)
-
-        j `seq` modifyState st rFArrayMap upd (return ())
-
-        return j
 
 --------------------------------------------------------------------------------
 -- Utility functions

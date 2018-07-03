@@ -50,7 +50,7 @@ wcommutesBad (a, x) (b, y) m i = readArray m0 i .== readArray m1 i
 -- symbolic equality. (In other words, checking this for SFunArray would be saying "if all reads are the
 -- same, then all reads are the same," which is useless at best.) Essentially, we need a nested
 -- quantifier here.
-extensionality :: Memory SArray -> Memory SArray -> Predicate
+extensionality :: (SymArray m, EqSymbolic (Memory m)) => Memory m -> Memory m -> Predicate
 extensionality m1 m2 = do i <- exists_
                           return $ (readArray m1 i ./= readArray m2 i) ||| m1 .== m2
 
@@ -58,6 +58,14 @@ extensionality m1 m2 = do i <- exists_
 extensionality2 :: SymArray m => Memory m -> Memory m -> Address -> Predicate
 extensionality2 m1 m2 i = do j <- exists_
                              return $ (readArray m1 j ./= readArray m2 j) ||| readArray m1 i .== readArray m2 i
+
+-- | Merge, using memory equality to check result
+mergeEq :: (SymArray m, Mergeable (Memory m), EqSymbolic (Memory m)) => SBool -> Memory m  -> Memory m -> SBool
+mergeEq b m1 m2 = ite b m1 m2 .== ite (bnot b) m2 m1
+
+-- | Merge, using extensionality to check result
+mergeExt :: (SymArray m, Mergeable (Memory m)) => SBool -> Memory m  -> Memory m -> Address -> SBool
+mergeExt b m1 m2 i = readArray (ite b m1 m2) i .== readArray (ite (bnot b) m2 m1) i
 
 tests :: TestTree
 tests =
@@ -81,4 +89,9 @@ tests =
 
     , testCase "ext2_SArray"             $ assertIsThm   (extensionality2 :: Memory SArray    -> Memory SArray    -> Address -> Predicate)
     , testCase "ext2_SFunArray"          $ assertIsThm   (extensionality2 :: Memory SFunArray -> Memory SFunArray -> Address -> Predicate)
+
+    , testCase "mergeEq_SArray"          $ assertIsThm   (mergeEq :: SBool -> Memory SArray -> Memory SArray -> SBool)
+
+    , testCase "mergeExt_SArray"         $ assertIsThm   (mergeExt :: SBool -> Memory SArray    -> Memory SArray    -> Address -> SBool)
+    , testCase "mergeExt_SFunArray"      $ assertIsThm   (mergeExt :: SBool -> Memory SFunArray -> Memory SFunArray -> Address -> SBool)
     ]
