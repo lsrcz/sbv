@@ -143,7 +143,7 @@ elemAt s i
         y si st = do c <- internalVariable st kElem
                      cs <- newExpr st kSeq (SBVApp (SeqOp SeqUnit) [c])
                      let csSBV = SBV (SVal kSeq (Right (cache (\_ -> return cs))))
-                     internalConstraint st [] $ unSBV $ csSBV .== si
+                     internalConstraint st False [] $ unSBV $ csSBV .== si
                      return c
 
 -- | @`implode` cs@ is the sequence of length @|cs|@ containing precisely those
