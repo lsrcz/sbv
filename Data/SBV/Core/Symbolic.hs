@@ -465,16 +465,16 @@ data Penalty = DefaultPenalty                  -- ^ Default: Penalty of @1@ and 
 
 -- | Objective of optimization. We can minimize, maximize, or give a soft assertion with a penalty
 -- for not satisfying it.
-data Objective a = Minimize   String a         -- ^ Minimize this metric
-                 | Maximize   String a         -- ^ Maximize this metric
-                 | AssertSoft String a Penalty -- ^ A soft assertion, with an associated penalty
+data Objective a = Minimize          String a         -- ^ Minimize this metric
+                 | Maximize          String a         -- ^ Maximize this metric
+                 | AssertWithPenalty String a Penalty -- ^ A soft assertion, with an associated penalty
                  deriving (Show, Functor)
 
 -- | The name of the objective
 objectiveName :: Objective a -> String
-objectiveName (Minimize   s _)   = s
-objectiveName (Maximize   s _)   = s
-objectiveName (AssertSoft s _ _) = s
+objectiveName (Minimize          s _)   = s
+objectiveName (Maximize          s _)   = s
+objectiveName (AssertWithPenalty s _ _) = s
 
 -- | The state we keep track of as we interact with the solver
 data QueryState = QueryState { queryAsk                 :: Maybe Int -> String -> IO String
@@ -499,9 +499,9 @@ instance NFData Penalty where
    rnf (Penalty p mbs) = rnf p `seq` rnf mbs `seq` ()
 
 instance NFData a => NFData (Objective a) where
-   rnf (Minimize   s a)   = rnf s `seq` rnf a `seq` ()
-   rnf (Maximize   s a)   = rnf s `seq` rnf a `seq` ()
-   rnf (AssertSoft s a p) = rnf s `seq` rnf a `seq` rnf p `seq` ()
+   rnf (Minimize          s a)   = rnf s `seq` rnf a `seq` ()
+   rnf (Maximize          s a)   = rnf s `seq` rnf a `seq` ()
+   rnf (AssertWithPenalty s a p) = rnf s `seq` rnf a `seq` rnf p `seq` ()
 
 -- | Result of running a symbolic computation
 data Result = Result { reskinds       :: Set.Set Kind                                     -- ^ kinds used in the program
@@ -515,7 +515,7 @@ data Result = Result { reskinds       :: Set.Set Kind                           
                      , resUIConsts    :: [(String, SBVType)]                              -- ^ uninterpreted constants
                      , resAxioms      :: [(String, [String])]                             -- ^ axioms
                      , resAsgns       :: SBVPgm                                           -- ^ assignments
-                     , resConstraints :: [([(String, String)], SW)]                       -- ^ additional constraints (boolean)
+                     , resConstraints :: [(Bool, [(String, String)], SW)]                       -- ^ additional constraints (boolean)
                      , resAssertions  :: [(String, Maybe CallStack, SW)]                  -- ^ assertions
                      , resOutputs     :: [SW]                                             -- ^ outputs
                      }
@@ -585,9 +585,12 @@ instance Show Result where
 
           shax (nm, ss) = "  -- user defined axiom: " ++ nm ++ "\n  " ++ intercalate "\n  " ss
 
-          shCstr ([], c)               = show c
-          shCstr ([(":named", nm)], c) = nm ++ ": " ++ show c
-          shCstr (attrs, c)            = show c ++ " (attributes: " ++ show attrs ++ ")"
+          shCstr (isSoft, [], c)               = soft isSoft ++ show c
+          shCstr (isSoft, [(":named", nm)], c) = soft isSoft ++ nm ++ ": " ++ show c
+          shCstr (isSoft, attrs, c)            = soft isSoft ++ show c ++ " (attributes: " ++ show attrs ++ ")"
+
+          soft True  = "[SOFT] "
+          soft False = ""
 
           shAssert (nm, stk, p) = "  -- assertion: " ++ nm ++ " " ++ maybe "[No location]"
 #if MIN_VERSION_base(4,9,0)
@@ -736,7 +739,7 @@ data State  = State { pathCond     :: SVal                             -- ^ kind
                     , rUsedKinds   :: IORef KindSet
                     , rUsedLbls    :: IORef (Set.Set String)
                     , rinps        :: IORef ([(Quantifier, NamedSymVar)], [NamedSymVar]) -- User defined, and internal existential
-                    , rConstraints :: IORef [([(String, String)], SW)]
+                    , rConstraints :: IORef [(Bool, [(String, String)], SW)]
                     , routs        :: IORef [SW]
                     , rtblMap      :: IORef TableMap
                     , spgm         :: IORef SBVPgm
@@ -1212,21 +1215,23 @@ addNewSMTOption o =  do st <- ask
                         liftIO $ modifyState st rSMTOptions (o:) (return ())
 
 -- | Handling constraints
-imposeConstraint :: [(String, String)] -> SVal -> Symbolic ()
-imposeConstraint attrs c = do st <- ask
-                              rm <- liftIO $ readIORef (runMode st)
-                              case rm of
-                                CodeGen -> error "SBV: constraints are not allowed in code-generation"
-                                _       -> liftIO $ do mapM_ (registerLabel st) [nm | (":named",  nm) <- attrs]
-                                                       internalConstraint st attrs c
+imposeConstraint :: Bool -> [(String, String)] -> SVal -> Symbolic ()
+imposeConstraint isSoft attrs c = do st <- ask
+                                     rm <- liftIO $ readIORef (runMode st)
+                                     case rm of
+                                       CodeGen -> error "SBV: constraints are not allowed in code-generation"
+                                       _       -> liftIO $ do mapM_ (registerLabel st) [nm | (":named",  nm) <- attrs]
+                                                              internalConstraint st isSoft attrs c
 
 -- | Require a boolean condition to be true in the state. Only used for internal purposes.
-internalConstraint :: State -> [(String, String)] -> SVal -> IO ()
-internalConstraint st attrs b = do v <- svToSW st b
-                                   modifyState st rConstraints ((attrs, v):)
-                                             $ noInteractive [ "Adding an internal constraint:"
-                                                             , "  Named: " ++ fromMaybe "<unnamed>" (listToMaybe [nm | (":named", nm) <- attrs])
-                                                             ]
+internalConstraint :: State -> Bool -> [(String, String)] -> SVal -> IO ()
+internalConstraint st isSoft attrs b = do v <- svToSW st b
+                                          modifyState st rConstraints ((isSoft, attrs, v):)
+                                                    $ noInteractive [ "Adding an internal " ++ soft ++ "constraint:"
+                                                                    , "  Named: " ++ fromMaybe "<unnamed>" (listToMaybe [nm | (":named", nm) <- attrs])
+                                                                    ]
+    where soft | isSoft = "soft-"
+               | True   = ""
 
 -- | Add an optimization goal
 addSValOptGoal :: Objective SVal -> Symbolic ()
@@ -1238,9 +1243,9 @@ addSValOptGoal obj = do st <- ask
                                                          trackSW <- svToSW st track
                                                          return (origSW, trackSW)
 
-                        let walk (Minimize   nm v)     = Minimize nm              <$> mkGoal nm v
-                            walk (Maximize   nm v)     = Maximize nm              <$> mkGoal nm v
-                            walk (AssertSoft nm v mbP) = flip (AssertSoft nm) mbP <$> mkGoal nm v
+                        let walk (Minimize          nm v)     = Minimize nm                     <$> mkGoal nm v
+                            walk (Maximize          nm v)     = Maximize nm                     <$> mkGoal nm v
+                            walk (AssertWithPenalty nm v mbP) = flip (AssertWithPenalty nm) mbP <$> mkGoal nm v
 
                         obj' <- walk obj
                         liftIO $ modifyState st rOptGoals (obj' :)

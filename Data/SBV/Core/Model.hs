@@ -23,7 +23,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 module Data.SBV.Core.Model (
-    Mergeable(..), EqSymbolic(..), OrdSymbolic(..), SDivisible(..), Uninterpreted(..), Metric(..), assertSoft, SIntegral, SFiniteBits(..)
+    Mergeable(..), EqSymbolic(..), OrdSymbolic(..), SDivisible(..), Uninterpreted(..), Metric(..), assertWithPenalty, SIntegral, SFiniteBits(..)
   , ite, iteLazy, sFromIntegral, sShiftLeft, sShiftRight, sRotateLeft, sRotateRight, sSignedShiftArithRight, (.^)
   , oneIf, genVar, genVar_, forall, forall_, exists, exists_
   , pbAtMost, pbAtLeast, pbExactly, pbLe, pbGe, pbEq, pbMutexed, pbStronglyMutexed
@@ -1795,15 +1795,16 @@ instance (SymWord h, SymWord g, SymWord f, SymWord e, SymWord d, SymWord c, SymW
 
 -- | Symbolic computations provide a context for writing symbolic programs.
 instance SolverContext Symbolic where
-   constrain                   (SBV c) = imposeConstraint []               c
-   namedConstraint        nm   (SBV c) = imposeConstraint [(":named", nm)] c
-   constrainWithAttribute atts (SBV c) = imposeConstraint atts             c
+   constrain                   (SBV c) = imposeConstraint False []               c
+   softConstrain               (SBV c) = imposeConstraint True  []               c
+   namedConstraint        nm   (SBV c) = imposeConstraint False [(":named", nm)] c
+   constrainWithAttribute atts (SBV c) = imposeConstraint False atts             c
 
    setOption o = addNewSMTOption  o
 
 -- | Introduce a soft assertion, with an optional penalty
-assertSoft :: String -> SBool -> Penalty -> Symbolic ()
-assertSoft nm o p = addSValOptGoal $ unSBV `fmap` AssertSoft nm o p
+assertWithPenalty :: String -> SBool -> Penalty -> Symbolic ()
+assertWithPenalty nm o p = addSValOptGoal $ unSBV `fmap` AssertWithPenalty nm o p
 
 -- | Class of metrics we can optimize for. Currently,
 -- bounded signed/unsigned bit-vectors, unbounded integers,
@@ -1843,7 +1844,7 @@ instance Testable (Symbolic SBool) where
      where test = do (r, Result{resTraces=tvals, resObservables=ovals, resConsts=cs, resConstraints=cstrs, resUIConsts=unints}) <- runSymbolic Concrete prop
 
                      let cval = fromMaybe (error "Cannot quick-check in the presence of uninterpeted constants!") . (`lookup` cs)
-                         cond = all (cwToBool . cval . snd) cstrs
+                         cond = and [cwToBool (cval v) | (False, _, v) <- cstrs] -- Only pick-up "hard" constraints, as indicated by False in the fist component
 
                          getObservable (nm, v) = case v `lookup` cs of
                                                    Just cw -> (nm, cw)

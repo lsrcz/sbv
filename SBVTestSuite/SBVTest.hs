@@ -49,12 +49,13 @@ import qualified TestSuite.Crypto.AES
 import qualified TestSuite.Crypto.RC4
 import qualified TestSuite.Existentials.CRCPolynomial
 import qualified TestSuite.GenTest.GenTests
-import qualified TestSuite.Optimization.AssertSoft
+import qualified TestSuite.Optimization.AssertWithPenalty
 import qualified TestSuite.Optimization.Basics
 import qualified TestSuite.Optimization.Combined
 import qualified TestSuite.Optimization.ExtensionField
 import qualified TestSuite.Optimization.Quantified
 import qualified TestSuite.Optimization.Reals
+import qualified TestSuite.Optimization.NoOpt
 import qualified TestSuite.Overflows.Arithmetic
 import qualified TestSuite.Overflows.Casts
 import qualified TestSuite.Polynomials.Polynomials
@@ -178,12 +179,13 @@ otherTests = testGroup "SBVTests" [
                , TestSuite.Crypto.RC4.tests
                , TestSuite.Existentials.CRCPolynomial.tests
                , TestSuite.GenTest.GenTests.tests
-               , TestSuite.Optimization.AssertSoft.tests
+               , TestSuite.Optimization.AssertWithPenalty.tests
                , TestSuite.Optimization.Basics.tests
                , TestSuite.Optimization.Combined.tests
                , TestSuite.Optimization.ExtensionField.tests
                , TestSuite.Optimization.Quantified.tests
                , TestSuite.Optimization.Reals.tests
+               , TestSuite.Optimization.NoOpt.tests
                , TestSuite.Overflows.Arithmetic.tests
                , TestSuite.Overflows.Casts.tests
                , TestSuite.Polynomials.Polynomials.tests
