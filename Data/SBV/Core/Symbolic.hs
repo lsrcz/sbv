@@ -49,7 +49,7 @@ module Data.SBV.Core.Symbolic
   , SolverCapabilities(..)
   , extractSymbolicSimulationState
   , OptimizeStyle(..), Objective(..), Penalty(..), objectiveName, addSValOptGoal
-  , Query(..), QueryState(..)
+  , Query(..), QueryState(..), QueryContext(..)
   , SMTScript(..), Solver(..), SMTSolver(..), SMTResult(..), SMTModel(..), SMTConfig(..), SMTEngine
   , outputSVal
   ) where
@@ -333,7 +333,7 @@ instance Show RegExp where
   show (Union xs)        = "(re.union " ++ unwords (map show xs) ++ ")"
 
 -- | Show instance for `StrOp`. Note that the mapping here is
--- important to match the SMTLib equivalents, see here: <https://rise4fun.com/z3/tutorialcontent/sequences>
+-- important to match the SMTLib equivalents, see here: <http://rise4fun.com/z3/tutorialcontent/sequences>
 instance Show StrOp where
   show StrConcat   = "str.++"
   show StrLen      = "str.len"
@@ -1509,6 +1509,10 @@ data SMTSolver = SMTSolver {
        , engine         :: SMTEngine             -- ^ The solver engine, responsible for interpreting solver output
        , capabilities   :: SolverCapabilities    -- ^ Various capabilities of the solver
        }
+
+-- | Query execution context
+data QueryContext = QueryInternal       -- ^ Triggered from inside SBV
+                  | QueryExternal       -- ^ Triggered from user code
 
 {-# ANN type FPOp ("HLint: ignore Use camelCase" :: String) #-}
 {-# ANN type PBOp ("HLint: ignore Use camelCase" :: String) #-}
