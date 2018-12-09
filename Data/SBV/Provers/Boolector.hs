@@ -34,6 +34,7 @@ boolector = SMTSolver {
                               , supportsPseudoBooleans     = False
                               , supportsCustomQueries      = True
                               , supportsGlobalDecls        = False
+                              , supportsNanPayloads        = Nothing
                               , supportsFlattenedSequences = Nothing
                               }
          }

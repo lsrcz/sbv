@@ -1409,6 +1409,7 @@ data SolverCapabilities = SolverCapabilities {
        , supportsPseudoBooleans     :: Bool           -- ^ Support for pseudo-boolean operations?
        , supportsCustomQueries      :: Bool           -- ^ Support for interactive queries per SMT-Lib?
        , supportsGlobalDecls        :: Bool           -- ^ Support for global decls, needed for push-pop.
+       , supportsNanPayloads        :: Maybe [String] -- ^ Supports showing NaN payloads, with given config lines
        , supportsFlattenedSequences :: Maybe [String] -- ^ Supports flattened sequence output, with given config lines
        }
 

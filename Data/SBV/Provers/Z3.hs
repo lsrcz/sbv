@@ -36,6 +36,8 @@ z3 = SMTSolver {
                               , supportsPseudoBooleans     = True
                               , supportsCustomQueries      = True
                               , supportsGlobalDecls        = True
+                              , supportsNanPayloads        = Just [ "(set-option :pp.fp_show_nan_payloads true)"
+                                                                  ]
                               , supportsFlattenedSequences = Just [ "(set-option :pp.max_depth      4294967295)"
                                                                   , "(set-option :pp.min_alias_size 4294967295)"
                                                                   ]

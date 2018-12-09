@@ -38,9 +38,10 @@ cvt kindInfo isSat comments (inputs, trackerVars) skolemInps consts tbls arrs ui
   where hasInteger     = KUnbounded `Set.member` kindInfo
         hasReal        = KReal      `Set.member` kindInfo
         hasFloat       = KFloat     `Set.member` kindInfo
+        hasDouble      = KDouble    `Set.member` kindInfo
+        hasIEEEFP      = hasFloat || hasDouble
         hasString      = KString    `Set.member` kindInfo
         hasChar        = KChar      `Set.member` kindInfo
-        hasDouble      = KDouble    `Set.member` kindInfo
         hasBVs         = hasChar || not (null [() | KBounded{} <- Set.toList kindInfo])   -- Remember, characters map to Word8
         usorts         = [(s, dt) | KUserSort s dt <- Set.toList kindInfo]
         hasNonBVArrays = (not . null) [() | (_, (_, (k1, k2), _)) <- arrs, not (isBounded k1 && isBounded k2)]
@@ -97,8 +98,9 @@ cvt kindInfo isSat comments (inputs, trackerVars) skolemInps consts tbls arrs ui
                     | True                     = "UF"
 
         -- SBV always requires the production of models!
-        getModels   = "(set-option :produce-models true)"
-                    : concat [flattenConfig | hasList, Just flattenConfig <- [supportsFlattenedSequences solverCaps]]
+        getModels   =  "(set-option :produce-models true)"
+                    :  concat [flattenConfig | hasList,   Just flattenConfig <- [supportsFlattenedSequences solverCaps]]
+                    ++ concat [showNaNConfig | hasIEEEFP, Just showNaNConfig <- [supportsNanPayloads solverCaps       ]]
 
         -- process all other settings we're given
         userSettings = concatMap opts $ solverSetOptions cfg
