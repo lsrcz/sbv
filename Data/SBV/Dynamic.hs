@@ -62,7 +62,7 @@ module Data.SBV.Dynamic
   -- *** Word-level operations
   , svToWord1, svFromWord1, svTestBit, svSetBit
   , svShiftLeft, svShiftRight
-  , svRotateLeft, svRotateRight
+  , svRotateLeft, svRotateLeftFast, svRotateRight, svRotateRightFast
   , svWordFromBE, svWordFromLE
   , svBlastLE, svBlastBE
   -- ** Conditionals: Mergeable values

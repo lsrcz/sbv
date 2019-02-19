@@ -35,7 +35,7 @@ module Data.SBV.Core.Operations
   -- ** Derived operations
   , svToWord1, svFromWord1, svTestBit
   , svShiftLeft, svShiftRight
-  , svRotateLeft, svRotateRight
+  , svRotateLeft, svRotateLeftFast, svRotateRight, svRotateRightFast
   , svBlastLE, svBlastBE
   , svAddConstant, svIncrement, svDecrement
   -- ** Basic array operations
@@ -428,7 +428,7 @@ svRol x i
   = x
   | True
   = case kindOf x of
-           KBounded _ sz -> liftSym1 (mkSymOp1 (Rol (i `mod` sz)))
+           KBounded _ sz -> liftSym1 (mkSymOp1 (Rol (Just (i `mod` sz))))
                                      (noRealUnary "rotateL") (rot True sz i)
                                      (noFloatUnary "rotateL") (noDoubleUnary "rotateL") x
            _ -> svShl x i   -- for unbounded Integers, rotateL is the same as shiftL in Haskell
@@ -440,7 +440,7 @@ svRor x i
   = x
   | True
   = case kindOf x of
-      KBounded _ sz -> liftSym1 (mkSymOp1 (Ror (i `mod` sz)))
+      KBounded _ sz -> liftSym1 (mkSymOp1 (Ror (Just (i `mod` sz))))
                                 (noRealUnary "rotateR") (rot False sz i)
                                 (noFloatUnary "rotateR") (noDoubleUnary "rotateR") x
       _ -> svShr x i   -- for unbounded integers, rotateR is the same as shiftR in Haskell
@@ -806,6 +806,17 @@ svRotateLeft x i
           zi = svInteger (kindOf i) 0
           n  = svInteger (kindOf i) (toInteger sx)
 
+-- | Faster version of 'svRotateLeft'. Only use if your backend solver supports symbolic
+-- values in rotation amounts, as this is not directly required by SMTLib.
+svRotateLeftFast :: SVal -> SVal -> SVal
+svRotateLeftFast x i@(SVal _ (Left _)) = svRotateLeft x i  -- Value constant, so just use the regular variant
+svRotateLeftFast x i                   = SVal kx $ Right $ cache result
+  where kx = kindOf x
+
+        result st = do sw1 <- svToSV st x
+                       sw2 <- svToSV st i
+                       newExpr st kx (SBVApp (Rol Nothing) [sw1, sw2])
+
 -- | Generalization of 'svRor', where the rotation amount is symbolic.
 -- If the first argument is not bounded, then the this is the same as shift.
 svRotateRight :: SVal -> SVal -> SVal
@@ -825,6 +836,17 @@ svRotateRight x i
           z  = svInteger (kindOf x) 0
           zi = svInteger (kindOf i) 0
           n  = svInteger (kindOf i) (toInteger sx)
+
+-- | Faster version of 'svRotateRight'. Only use if your backend solver supports symbolic
+-- values in rotation amounts, as this is not directly required by SMTLib.
+svRotateRightFast :: SVal -> SVal -> SVal
+svRotateRightFast x i@(SVal _ (Left _)) = svRotateRight x i  -- Value constant, so just use the regular variant
+svRotateRightFast x i                   = SVal kx $ Right $ cache result
+  where kx = kindOf x
+
+        result st = do sw1 <- svToSV st x
+                       sw2 <- svToSV st i
+                       newExpr st kx (SBVApp (Ror Nothing) [sw1, sw2])
 
 --------------------------------------------------------------------------------
 -- | Overflow detection.

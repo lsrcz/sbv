@@ -78,6 +78,11 @@
     way. Essentially this method is the polymorphic equaivalent of 'fpIsEqualObject'
     except it works on all types.
 
+  * Added functions 'sRotateLeftFast' and 'sRotateRightFast' which can produce more
+    performant code if the rotation amount is symbolic. Note that not all solvers
+    support this option, so do not use these functions unless the SMT engine you
+    pick has support for symbolic rotates. (As of Feb 2019, only z3 supports them.)
+
   * Added unnamed equivalents of 'sBool', 'sWord8' etc; with a following underscore, i.e.,
     'sBool_', 'sWord8_'. The new functions are supported for all base types, chars,
     strings, lists, and tuples.

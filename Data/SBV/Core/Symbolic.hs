@@ -157,8 +157,8 @@ data Op = Plus
         | Not
         | Shl
         | Shr
-        | Rol Int
-        | Ror Int
+        | Rol (Maybe Int)                       -- SMTLib doesn't allow symbolic rotates on the amount, but some solvers do. If we have a constant, we'll put it
+        | Ror (Maybe Int)                       -- here. If not, we'll stick it as an argument and hope that the solver supports it.
         | Extract Int Int                       -- Extract i j: extract bits i to j. Least significant bit is 0 (big-endian)
         | Join                                  -- Concat two words to form a bigger one, in the order given
         | LkUp (Int, Kind, Kind, Int) !SV !SV   -- (table-index, arg-type, res-type, length of the table) index out-of-bounds-value

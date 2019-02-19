@@ -700,26 +700,42 @@ ppExpr cfg consts (SBVApp op opArgs) lhs (typ, var)
         getShiftAmnt def _       = def
 
         p :: Op -> [Doc] -> Doc
-        p (ArrRead _)       _  = tbd "User specified arrays (ArrRead)"
-        p (ArrEq _ _)       _  = tbd "User specified arrays (ArrEq)"
-        p (Label s)        [a] = a <+> text "/*" <+> text s <+> text "*/"
-        p (IEEEFP w)         as = handleIEEE w  consts (zip opArgs as) var
+        p (ArrRead _) _  = tbd "User specified arrays (ArrRead)"
+        p (ArrEq _ _) _  = tbd "User specified arrays (ArrEq)"
+
+        p (Label s) [a] = a <+> text "/*" <+> text s <+> text "*/"
+
+        p (IEEEFP w) as = handleIEEE w  consts (zip opArgs as) var
+
         p (PseudoBoolean pb) as = handlePB pb as
-        p (OverflowOp o) _      = tbd $ "Overflow operations" ++ show o
+
+        p (OverflowOp o) _ = tbd $ "Overflow operations" ++ show o
+
         p (KindCast _ to)   [a] = parens (text (show to)) <+> a
+
         p (Uninterpreted s) [] = text "/* Uninterpreted constant */" <+> text s
         p (Uninterpreted s) as = text "/* Uninterpreted function */" <+> text s P.<> parens (fsep (punctuate comma as))
-        p (Extract i j) [a]    = extract i j (head opArgs) a
-        p Join [a, b]          = join (let (s1 : s2 : _) = opArgs in (s1, s2, a, b))
-        p (Rol i) [a]          = rotate True  i a (head opArgs)
-        p (Ror i) [a]          = rotate False i a (head opArgs)
-        p Shl     [a, i]       = shift  True  (getShiftAmnt i opArgs) a -- The order of i/a being reversed here is
-        p Shr     [a, i]       = shift  False (getShiftAmnt i opArgs) a -- intentional and historical (from the days when Shl/Shr had a constant parameter.)
-        p Not [a]              = case kindOf (head opArgs) of
-                                   -- be careful about booleans, bitwise complement is not correct for them!
-                                   KBool -> text "!" P.<> a
-                                   _     -> text "~" P.<> a
+
+        p (Extract i j) [a] = extract i j (head opArgs) a
+
+        p Join [a, b] = join (let (s1 : s2 : _) = opArgs in (s1, s2, a, b))
+
+        p (Rol (Just i)) [a]    = rotate True  (Left i)        a (head opArgs)
+        p (Rol Nothing)  [a, b] = rotate True  (Right (b, x2)) a (head opArgs) where (_ : x2 : _) = opArgs
+
+        p (Ror (Just i)) [a]    = rotate False (Left i)        a (head opArgs)
+        p (Ror Nothing)  [a, b] = rotate False (Right (b, x2)) a (head opArgs) where (_ : x2 : _) = opArgs
+
+        p Shl [a, i] = shift  True  (getShiftAmnt i opArgs) a -- The order of i/a being reversed here is
+        p Shr [a, i] = shift  False (getShiftAmnt i opArgs) a -- intentional and historical (from the days when Shl/Shr had a constant parameter.)
+
+        p Not [a] = case kindOf (head opArgs) of
+                      -- be careful about booleans, bitwise complement is not correct for them!
+                      KBool -> text "!" P.<> a
+                      _     -> text "~" P.<> a
+
         p Ite [a, b, c] = a <+> text "?" <+> b <+> text ":" <+> c
+
         p (LkUp (t, k, _, len) ind def) []
           | not rtc                    = lkUp -- ignore run-time-checks per user request
           | needsCheckL && needsCheckR = cndLkUp checkBoth
@@ -761,30 +777,35 @@ ppExpr cfg consts (SBVApp op opArgs) lhs (typ, var)
         p Quot [a, b] = let k = kindOf (head opArgs)
                             z = mkConst cfg $ mkConstCV k (0::Integer)
                         in protectDiv0 k "/" z a b
+
         p Rem  [a, b] = protectDiv0 (kindOf (head opArgs)) "%" a a b
-        p UNeg [a]    = parens (text "-" <+> a)
-        p Abs  [a]    = let f KFloat             = text "fabsf" P.<> parens a
-                            f KDouble            = text "fabs"  P.<> parens a
-                            f (KBounded False _) = text "/* unsigned, skipping call to abs */" <+> a
-                            f (KBounded True 32) = text "labs"  P.<> parens a
-                            f (KBounded True 64) = text "llabs" P.<> parens a
-                            f KUnbounded         = case cgInteger cfg of
-                                                     Nothing -> f $ KBounded True 32 -- won't matter, it'll be rejected later
-                                                     Just i  -> f $ KBounded True i
-                            f KReal              = case cgReal cfg of
-                                                     Nothing           -> f KDouble -- won't matter, it'll be rejected later
-                                                     Just CgFloat      -> f KFloat
-                                                     Just CgDouble     -> f KDouble
-                                                     Just CgLongDouble -> text "fabsl" P.<> parens a
-                            f _                  = text "abs" P.<> parens a
-                        in f (kindOf (head opArgs))
+
+        p UNeg [a] = parens (text "-" <+> a)
+
+        p Abs  [a] = let f KFloat             = text "fabsf" P.<> parens a
+                         f KDouble            = text "fabs"  P.<> parens a
+                         f (KBounded False _) = text "/* unsigned, skipping call to abs */" <+> a
+                         f (KBounded True 32) = text "labs"  P.<> parens a
+                         f (KBounded True 64) = text "llabs" P.<> parens a
+                         f KUnbounded         = case cgInteger cfg of
+                                                  Nothing -> f $ KBounded True 32 -- won't matter, it'll be rejected later
+                                                  Just i  -> f $ KBounded True i
+                         f KReal              = case cgReal cfg of
+                                                  Nothing           -> f KDouble -- won't matter, it'll be rejected later
+                                                  Just CgFloat      -> f KFloat
+                                                  Just CgDouble     -> f KDouble
+                                                  Just CgLongDouble -> text "fabsl" P.<> parens a
+                         f _                  = text "abs" P.<> parens a
+                     in f (kindOf (head opArgs))
+
         -- for And/Or, translate to boolean versions if on boolean kind
         p And [a, b] | kindOf (head opArgs) == KBool = a <+> text "&&" <+> b
         p Or  [a, b] | kindOf (head opArgs) == KBool = a <+> text "||" <+> b
-        p o [a, b]
-          | Just co <- lookup o cBinOps
-          = a <+> text co <+> b
+
+        p o [a, b] | Just co <- lookup o cBinOps = a <+> text co <+> b
         p NotEqual xs = mkDistinct xs
+
+        -- Giving up. Hopefully this should not happen! (Or at least not very often..)
         p o args = die $ "Received operator " ++ show o ++ " applied to " ++ show args
 
         -- generate a pairwise inequality check
@@ -812,17 +833,19 @@ ppExpr cfg consts (SBVApp op opArgs) lhs (typ, var)
           where cop | toLeft = "<<"
                     | True   = ">>"
 
-        rotate toLeft i a s
-          | i < 0   = rotate (not toLeft) (-i) a s
-          | i == 0  = a
+        rotate :: Bool -> Either Int (Doc, SV) -> Doc -> SV -> Doc
+        rotate toLeft ri a s
+          | Left i       <- ri, i == 0    = a
+          | Left i       <- ri, i <  0    = rotate (not toLeft) (Left (-i)) a s
+          | Right (_, b) <- ri, hasSign b = tbd $ "Rotation with a symbolic signed quantity: " ++ show (toLeft, ri, a, b, s)
           | True    = case kindOf s of
-                        KBounded True _             -> tbd $ "Rotation of signed quantities: " ++ show (toLeft, i, s)
-                        KBounded False sz | i >= sz -> rotate toLeft (i `mod` sz) a s
-                        KBounded False sz           ->     parens (a <+> text cop  <+> int i)
-                                                      <+> text "|"
-                                                      <+> parens (a <+> text cop' <+> int (sz - i))
-                        KUnbounded                  -> shift toLeft (int i) a -- For SInteger, rotate is the same as shift in Haskell
-                        _                           -> tbd $ "Rotation for unbounded quantity: " ++ show (toLeft, i, s)
+                        KBounded True _                                 -> tbd $ "Rotation of signed quantities: " ++ show (toLeft, ri, s)
+                        KBounded False sz | Left i       <- ri, i >= sz -> rotate toLeft (Left (i `mod` sz)) a s
+                                          | Left i       <- ri          -> parens (a <+> text cop  <+> int i) <+> text "|" <+> parens (a <+> text cop' <+> int (sz - i))
+                        KBounded False sz | Right (v, _) <- ri          -> let v' = parens $ int sz <+> text "-" <+> v
+                                                                           in parens (a <+> text cop  <+> v) <+> text "|" <+> parens (a <+> text cop' <+> v')
+                        KUnbounded                                      -> shift toLeft (either int fst ri) a -- For SInteger, rotate is the same as shift in Haskell
+                        _                                               -> tbd $ "Rotation for unbounded quantity: " ++ show (toLeft, ri, s)
           where (cop, cop') | toLeft = ("<<", ">>")
                             | True   = (">>", "<<")
 

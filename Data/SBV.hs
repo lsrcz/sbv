@@ -198,7 +198,7 @@ module Data.SBV (
   , sFromIntegral
   -- ** Shifts and rotates
   -- $shiftRotate
-  , sShiftLeft, sShiftRight, sRotateLeft, sRotateRight, sSignedShiftArithRight
+  , sShiftLeft, sShiftRight, sRotateLeft, sRotateLeftFast, sRotateRight, sRotateRightFast, sSignedShiftArithRight
   -- ** Finite bit-vector operations
   , SFiniteBits(..)
   -- ** Splitting, joining, and extending
