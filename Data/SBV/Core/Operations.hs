@@ -810,6 +810,7 @@ svRotateLeft x i
 -- values in rotation amounts, as this is not directly required by SMTLib.
 svRotateLeftFast :: SVal -> SVal -> SVal
 svRotateLeftFast x i@(SVal _ (Left _)) = svRotateLeft x i  -- Value constant, so just use the regular variant
+svRotateLeftFast x i | isUnbounded i   = svRotateLeft x i  -- Integer parameter, handle slowly (fast version only allows bitvectors)
 svRotateLeftFast x i                   = SVal kx $ Right $ cache result
   where kx = kindOf x
 
@@ -841,6 +842,7 @@ svRotateRight x i
 -- values in rotation amounts, as this is not directly required by SMTLib.
 svRotateRightFast :: SVal -> SVal -> SVal
 svRotateRightFast x i@(SVal _ (Left _)) = svRotateRight x i  -- Value constant, so just use the regular variant
+svRotateRightFast x i | isUnbounded i   = svRotateRight x i  -- Integer parameter, handle slowly (fast version only allows bitvectors)
 svRotateRightFast x i                   = SVal kx $ Right $ cache result
   where kx = kindOf x
 
