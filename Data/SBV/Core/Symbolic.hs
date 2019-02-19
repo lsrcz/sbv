@@ -388,8 +388,10 @@ instance Show Op where
   show Shl    = "<<"
   show Shr    = ">>"
 
-  show (Rol i) = "<<<" ++ show i
-  show (Ror i) = ">>>" ++ show i
+  show (Rol (Just i)) = "<<<" ++ show i
+  show (Rol Nothing)  = "<<<"
+  show (Ror (Just i)) = ">>>" ++ show i
+  show (Ror Nothing)  = ">>>"
 
   show (Extract i j) = "choose [" ++ show i ++ ":" ++ show j ++ "]"
 
@@ -478,10 +480,12 @@ reorder s = case s of
 -- Show instance for 'SBVExpr'. Again, only for debugging purposes.
 instance Show SBVExpr where
   show (SBVApp Ite [t, a, b])             = unwords ["if", show t, "then", show a, "else", show b]
-  show (SBVApp Shl     [a, i])            = unwords [show a, "<<", show i]
-  show (SBVApp Shr     [a, i])            = unwords [show a, ">>", show i]
-  show (SBVApp (Rol i) [a])               = unwords [show a, "<<<", show i]
-  show (SBVApp (Ror i) [a])               = unwords [show a, ">>>", show i]
+  show (SBVApp Shl            [a, i])     = unwords [show a, "<<", show i]
+  show (SBVApp Shr            [a, i])     = unwords [show a, ">>", show i]
+  show (SBVApp (Rol (Just i)) [a])        = unwords [show a, "<<<", show i]
+  show (SBVApp (Rol Nothing)  [a, b])     = unwords [show a, "<<<", show b]
+  show (SBVApp (Ror (Just i)) [a])        = unwords [show a, ">>>", show i]
+  show (SBVApp (Ror Nothing)  [a, b])     = unwords [show a, ">>>", show b]
   show (SBVApp (PseudoBoolean pb) args)   = unwords (show pb : map show args)
   show (SBVApp (OverflowOp op)    args)   = unwords (show op : map show args)
   show (SBVApp op                 [a, b]) = unwords [show a, show op, show b]
