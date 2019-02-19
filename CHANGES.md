@@ -78,6 +78,8 @@
     way. Essentially this method is the polymorphic equaivalent of 'fpIsEqualObject'
     except it works on all types.
 
+  * Removed the redundant 'SDivisible' constraint on rotate-left and rotate-right operations.
+
   * Added functions 'sRotateLeftFast' and 'sRotateRightFast' which can produce more
     performant code if the rotation amount is symbolic. Note that not all solvers
     support this option, so do not use these functions unless the SMT engine you
