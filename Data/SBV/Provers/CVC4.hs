@@ -37,6 +37,7 @@ cvc4 = SMTSolver {
                               , supportsIEEE754            = False
                               , supportsOptimization       = False
                               , supportsPseudoBooleans     = False
+                              , supportsSymbolicRotates    = False
                               , supportsCustomQueries      = True
                               , supportsGlobalDecls        = True
                               , supportsDataTypes          = True

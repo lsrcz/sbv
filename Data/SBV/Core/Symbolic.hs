@@ -1592,6 +1592,7 @@ data SolverCapabilities = SolverCapabilities {
        , supportsIEEE754            :: Bool           -- ^ Supports floating point numbers?
        , supportsOptimization       :: Bool           -- ^ Supports optimization routines?
        , supportsPseudoBooleans     :: Bool           -- ^ Supports pseudo-boolean operations?
+       , supportsSymbolicRotates    :: Bool           -- ^ Supports symbolic rotation values?
        , supportsCustomQueries      :: Bool           -- ^ Supports interactive queries per SMT-Lib?
        , supportsGlobalDecls        :: Bool           -- ^ Supports global declarations? (Needed for push-pop.)
        , supportsDataTypes          :: Bool           -- ^ Supports datatypes?

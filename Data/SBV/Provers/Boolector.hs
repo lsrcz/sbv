@@ -33,6 +33,7 @@ boolector = SMTSolver {
                               , supportsIEEE754            = False
                               , supportsOptimization       = False
                               , supportsPseudoBooleans     = False
+                              , supportsSymbolicRotates    = False
                               , supportsCustomQueries      = True
                               , supportsGlobalDecls        = False
                               , supportsDataTypes          = False

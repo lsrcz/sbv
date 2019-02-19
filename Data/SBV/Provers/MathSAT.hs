@@ -37,6 +37,7 @@ mathSAT = SMTSolver {
                               , supportsIEEE754            = True
                               , supportsOptimization       = False
                               , supportsPseudoBooleans     = False
+                              , supportsSymbolicRotates    = False
                               , supportsCustomQueries      = True
                               , supportsGlobalDecls        = False
                               , supportsDataTypes          = True

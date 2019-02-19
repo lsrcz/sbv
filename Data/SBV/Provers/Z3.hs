@@ -35,6 +35,7 @@ z3 = SMTSolver {
                               , supportsIEEE754            = True
                               , supportsOptimization       = True
                               , supportsPseudoBooleans     = True
+                              , supportsSymbolicRotates    = True
                               , supportsCustomQueries      = True
                               , supportsGlobalDecls        = True
                               , supportsDataTypes          = True

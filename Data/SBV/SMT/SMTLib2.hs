@@ -613,7 +613,8 @@ cvtExp :: SolverCapabilities -> RoundingMode -> SkolemMap -> TableMap -> SBVExpr
 cvtExp caps rm skolemMap tableMap expr@(SBVApp _ arguments) = sh expr
   where ssv = cvtSV skolemMap
 
-        supportsPB = supportsPseudoBooleans caps
+        supportsPB        = supportsPseudoBooleans  caps
+        symRotatesAllowed = supportsSymbolicRotates caps
 
         bvOp     = all isBounded   arguments
         intOp    = any isUnbounded arguments
@@ -794,21 +795,14 @@ cvtExp caps rm skolemMap tableMap expr@(SBVApp _ arguments) = sh expr
 
         sh (SBVApp (Extract i j) [a]) | ensureBV = "((_ extract " ++ show i ++ " " ++ show j ++ ") " ++ ssv a ++ ")"
 
-        sh (SBVApp (Rol i) [a])
-           | bvOp  = rot ssv "rotate_left"  i a
-           | True  = bad
+        sh (SBVApp (Rol (Just i)) [a])    | bvOp  = rot symRotatesAllowed ssv "rotate_left"  (Left i)  a
+        sh (SBVApp (Rol Nothing)  [a, b]) | bvOp  = rot symRotatesAllowed ssv "rotate_left"  (Right b) a
 
-        sh (SBVApp (Ror i) [a])
-           | bvOp  = rot  ssv "rotate_right" i a
-           | True  = bad
+        sh (SBVApp (Ror (Just i)) [a])    | bvOp  = rot symRotatesAllowed ssv "rotate_right" (Left i)  a
+        sh (SBVApp (Ror Nothing)  [a, b]) | bvOp  = rot symRotatesAllowed ssv "rotate_right" (Right b) a
 
-        sh (SBVApp Shl [a, i])
-           | bvOp   = shft ssv "bvshl"  "bvshl" a i
-           | True   = bad
-
-        sh (SBVApp Shr [a, i])
-           | bvOp  = shft ssv "bvlshr" "bvashr" a i
-           | True  = bad
+        sh (SBVApp Shl [a, i]) | bvOp  = shft ssv "bvshl"  "bvshl" a i
+        sh (SBVApp Shr [a, i]) | bvOp  = shft ssv "bvlshr" "bvashr" a i
 
         sh (SBVApp op args)
           | Just f <- lookup op smtBVOpTable, ensureBVOrBool
@@ -1039,8 +1033,23 @@ handleFPCast kFrom kTo rm input
         -- Nothing else should come up:
         cast f                  d                  _ = error $ "SBV.SMTLib2: Unexpected FPCast from: " ++ show f ++ " to " ++ show d
 
-rot :: (SV -> String) -> String -> Int -> SV -> String
-rot ssv o c x = "((_ " ++ o ++ " " ++ show c ++ ") " ++ ssv x ++ ")"
+-- Rotations of the second kind (i.e., with a symbolic rotate) are not part of
+-- SMTLib, but is supported by some solvers; such as z3. So, make sure you
+-- use it only in contexts where your solver supports it!
+rot :: Bool -> (SV -> String) -> String -> Either Int SV -> SV -> String
+rot _          ssv o (Left c)  x = "((_ " ++ o ++ " " ++ show c ++ ") " ++ ssv x ++ ")"
+rot symRotates ssv o (Right c) x
+  | symRotates = "((_ " ++ o ++ " " ++ ssv  c ++ ") " ++ ssv x ++ ")"
+  | True       = error $ unlines [""
+                                 , "*** Data.SBV: Chosen solver does not support symbolic values for rotation amounts."
+                                 , "***"
+                                 , "*** Instead of 'sRotateLeftFast` and 'sRotateRightFast', you must use 'sRotateLeft' and 'sRotateRight'."
+                                 , "***"
+                                 , "*** Latter versions avoid this problem, by generating table-lookup values instead. However, these"
+                                 , "*** can cause performance issues in the backend solver."
+                                 , "***"
+                                 , "*** Please report this to the SMTLib committee so they can require symbolic rotation amounts!"
+                                 ]
 
 shft :: (SV -> String) -> String -> String -> SV -> SV -> String
 shft ssv oW oS x c = "(" ++ o ++ " " ++ ssv x ++ " " ++ ssv c ++ ")"
