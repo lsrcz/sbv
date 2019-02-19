@@ -38,6 +38,9 @@ SBV library provides support for dealing with symbolic values in Haskell. It int
   - `SChar`: Symbolic characters. (Currently Latin-1, but will be unicode in the future.)
   - `SString`: Symbolic strings.
   - `SList`: Symbolic lists. (Which can be nested, i.e., lists of lists.)
+  - `STuple`: Symbolic tuples (upto 8-tuples, can be nested)
+  - `SEither`: Symbolic sums
+  - `SMaybe`: Symbolic optional values
   - Arrays of symbolic values.
   - Symbolic enumerations, for arbitrary user-defined enumerated types.
   - Symbolic polynomials over GF(2^n ), polynomial arithmetic, and CRCs.
