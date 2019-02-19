@@ -1279,14 +1279,14 @@ sSignedShiftArithRight x i
 -- Note that this function translates to a table lookup if the second argument
 -- is symbolic, and thus can be difficult for provers to handle. See 'sRotateLeftFast'
 -- for a version that can be faster if your backend solver supports symbolic rotates.
-sRotateLeft :: (SIntegral a, SIntegral b, SDivisible (SBV b)) => SBV a -> SBV b -> SBV a
+sRotateLeft :: (SIntegral a, SIntegral b) => SBV a -> SBV b -> SBV a
 sRotateLeft = liftViaSVal svRotateLeft
 
 -- | Variation on 'sRotateLeft', which translates to SMTLib's primitive rotation function.
 -- Note that SMTLib does not allow for symbolic rotation amounts, i.e., when the second
 -- argument is symbolic. However, some solvers do, and this function takes advantage
 -- of that. Only use if your backend solver supports this extension.
-sRotateLeftFast :: (SIntegral a, SIntegral b, SDivisible (SBV b)) => SBV a -> SBV b -> SBV a
+sRotateLeftFast :: (SIntegral a, SIntegral b) => SBV a -> SBV b -> SBV a
 sRotateLeftFast = liftViaSVal svRotateLeftFast
 
 -- | Generalization of 'rotateR', when the shift-amount is symbolic. Since Haskell's
@@ -1295,14 +1295,14 @@ sRotateLeftFast = liftViaSVal svRotateLeftFast
 -- Note that this function translates to a table lookup if the second argument
 -- is symbolic, and thus can be difficult for provers to handle. See 'sRotateRightFast'
 -- for a version that can be faster if your backend solver supports symbolic rotates.
-sRotateRight :: (SIntegral a, SIntegral b, SDivisible (SBV b)) => SBV a -> SBV b -> SBV a
+sRotateRight :: (SIntegral a, SIntegral b) => SBV a -> SBV b -> SBV a
 sRotateRight = liftViaSVal svRotateRight
 
 -- | Variation on 'sRotateRight', which translates to SMTLib's primitive rotation function.
 -- Note that SMTLib does not allow for symbolic rotation amounts, i.e., when the second
 -- argument is symbolic. However, some solvers do, and this function takes advantage
 -- of that. Only use if your backend solver supports this extension.
-sRotateRightFast :: (SIntegral a, SIntegral b, SDivisible (SBV b)) => SBV a -> SBV b -> SBV a
+sRotateRightFast :: (SIntegral a, SIntegral b) => SBV a -> SBV b -> SBV a
 sRotateRightFast = liftViaSVal svRotateRightFast
 
 -- Enum instance. These instances are suitable for use with concrete values,
