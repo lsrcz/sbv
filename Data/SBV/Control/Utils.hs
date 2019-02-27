@@ -1580,11 +1580,18 @@ executeQuery queryContext (QueryT userQuery) = do
      -- So, we check if this is an external-query, and if there are quantified variables. If so, we
      -- cowardly refuse to continue. For details, see: <http://github.com/LeventErkok/sbv/issues/407>
 
+     -- We want to reject quantifiers that will turn into `forall` in SMTLib.
+     -- That usually means rejecting universal quantifiers, but we flip
+     -- universals and existentials when in proof mode.
+     let badQ = case rm of
+           SMTMode _ False _ -> EX  -- proof mode
+           _                 -> ALL
+
      () <- liftIO $ case queryContext of
                       QueryInternal -> return ()         -- we're good, internal usages don't mess with scopes
                       QueryExternal -> do
                         (userInps, _) <- readIORef (rinps st)
-                        let badInps = reverse [n | (ALL, (_, n)) <- userInps]
+                        let badInps = reverse [n | (q, (_, n)) <- userInps, q == badQ]
                         case badInps of
                           [] -> return ()
                           _  -> let plu | length badInps > 1 = "s require"
