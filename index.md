@@ -23,7 +23,7 @@ based on the current model, and access to internals of SMT solvers for advanced 
 Overview
 ========
 
-  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: Jan 14th, 2019.)
+  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: Mar 9th, 2019.)
   - [Release Notes](http://github.com/LeventErkok/sbv/tree/master/CHANGES.md). 
 
 SBV library provides support for dealing with symbolic values in Haskell. It introduces the types:
@@ -41,6 +41,7 @@ SBV library provides support for dealing with symbolic values in Haskell. It int
   - `STuple`: Symbolic tuples (upto 8-tuples, can be nested)
   - `SEither`: Symbolic sums
   - `SMaybe`: Symbolic optional values
+  - `SSet`: Symbolic sets
   - Arrays of symbolic values.
   - Symbolic enumerations, for arbitrary user-defined enumerated types.
   - Symbolic polynomials over GF(2^n ), polynomial arithmetic, and CRCs.
