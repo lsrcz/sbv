@@ -31,6 +31,7 @@ SBV library provides support for dealing with symbolic values in Haskell. It int
   - `SBool`: Symbolic Booleans (bits).
   - `SWord8`, `SWord16`, `SWord32`, `SWord64`: Symbolic Words (unsigned).
   - `SInt8`,  `SInt16`,  `SInt32`,  `SInt64`: Symbolic Ints (signed).
+  - `SWord N`, `SInt N`, for N > 0: Arbitrary sized unsigned/signed bit-vectors, parameterized by the bitsize. (Using DataKinds extension.)
   - `SInteger`: Symbolic unbounded integers (signed).
   - `SReal`: Symbolic infinite precision algebraic reals (signed).
   - `SFloat`: IEEE-754 single precision floating point number. (`Float`.)
