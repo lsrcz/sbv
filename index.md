@@ -100,6 +100,7 @@ The following people reported bugs, provided comments/feedback, or contributed t
 of SBV in various ways:
 Ara Adkins,
 Kanishka Azimi,
+Markus Barenhoff,
 Reid Barton,
 Ben Blaxill,
 Ian Blumenfeld,
