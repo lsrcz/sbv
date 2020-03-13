@@ -130,7 +130,7 @@ Joe Leslie-Hurd,
 Brett Letner,
 Georgy Lukyanov,
 John Matthews,
-Curran McConnell
+Curran McConnell,
 Philipp Meyer,
 Joshua Moerman,
 Jan Path,
