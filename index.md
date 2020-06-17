@@ -69,7 +69,7 @@ are supported:
 
   - [ABC](http://www.eecs.berkeley.edu/~alanmi/abc/) from University of Berkeley
   - [Boolector](http://fmv.jku.at/boolector/) from Johannes Kepler University
-  - [CVC4](http://cvc4.cs.nyu.edu) from Stanford University and the University of Iowa
+  - [CVC4](http://cvc4.github.io/) from Stanford University and the University of Iowa
   - [MathSAT](http://mathsat.fbk.eu/) from FBK and DISI-University of Trento
   - [Yices](http://yices.csl.sri.com) from SRI
   - [Z3](http://github.com/Z3Prover/z3/wiki) from Microsoft
