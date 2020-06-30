@@ -23,7 +23,7 @@ based on the current model, and access to internals of SMT solvers for advanced 
 Overview
 ========
 
-  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: Feb 8th, 2020.)
+  - [![Hackage version](http://img.shields.io/hackage/v/sbv.svg?label=Hackage)](http://hackage.haskell.org/package/sbv) (Released: Jun 30th, 2020.)
   - [Release Notes](http://github.com/LeventErkok/sbv/tree/master/CHANGES.md). 
 
 SBV library provides support for dealing with symbolic values in Haskell. It introduces the types:
@@ -93,7 +93,11 @@ the [BSD3](http://en.wikipedia.org/wiki/BSD_licenses) verbiage.
 
 Thanks
 ======
-The following people made major contributions to SBV, by developing new features and contributing to the design in significant ways: Joel Burget, Brian Huffman, and Brian Schroeder.
+The following people made major contributions to SBV, by developing new features and contributing to the design in significant ways:
+Joel Burget,
+Brian Huffman,
+Brian Schroeder,
+and Jeffrey Young.
 
 The following people reported bugs, provided comments/feedback, or contributed to the development
 of SBV in various ways:
@@ -151,7 +155,6 @@ Josef Svenningsson,
 Daniel Wagner,
 Sean Weaver,
 Nis Wegmann,
-Jeffrey Young,
 and Jared Ziegler.
 
 Thanks!
