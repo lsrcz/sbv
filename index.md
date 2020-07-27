@@ -54,6 +54,7 @@ The user can construct ordinary Haskell programs using these types, which behave
   - proven correct via an external SMT solver (the `prove` function),
   - checked for satisfiability (the `sat`, and `allSat` functions),
   - checked for assertion violations (the `safe` function with `sAssert` calls),
+  - checked for delta-satisfiability (the `dsat` and `dprove` functions),
   - used in synthesis (the `sat` function with existentials),
   - checked for machine-arithmetic overflow/underflow conditions,
   - optimized with respect to cost functions (the `optimize`, `maximize`, and `minimize` functions),
