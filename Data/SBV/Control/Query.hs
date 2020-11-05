@@ -55,7 +55,7 @@ import Data.SBV.Utils.SExpr
 
 import Data.SBV.Control.Types
 import Data.SBV.Control.Utils
-
+import Debug.Trace(trace)
 -- | An Assignment of a model binding
 data Assignment = Assign SVal CV
 
@@ -316,6 +316,8 @@ getModelAtIndex mbi = do
            -- for "sat", display the prefix existentials. for "proof", display the prefix universals
           let allModelInputs = if isSAT then takeWhile ((/= ALL) . fst) qinps
                                         else takeWhile ((== ALL) . fst) qinps
+              wasSat = takeWhile ((/= ALL) . fst) qinps
+              wasNotSat = takeWhile ((== ALL) . fst) qinps
 
               -- Add on observables only if we're not in a quantified context
               grabObservables = length allModelInputs == length qinps -- i.e., we didn't drop anything
@@ -324,6 +326,20 @@ getModelAtIndex mbi = do
                       then getObservables
                       else do queryDebug ["*** In a quantified context, obvservables will not be printed."]
                               return []
+
+
+          trace "----------------------" $ return ()
+          trace "----------------------" $ return ()
+          trace ("ALLMODELINPUTS:     " ++ show allModelInputs) $ return ()
+          trace ("wasSat:     " ++ show wasSat) $ return ()
+          trace ("wasNotSat:     " ++ show wasNotSat) $ return ()
+          trace ("grabObvs:     " ++ show wasNotSat) $ return ()
+          trace ("qinps:     " ++ show qinps) $ return ()
+          trace "----------------------" $ return ()
+          trace "----------------------\n\n" $ return ()
+
+
+
 
           let sortByNodeId :: [(SV, (String, CV))] -> [(String, CV)]
               sortByNodeId = map snd . sortBy (compare `on` (\(SV _ nid, _) -> nid))

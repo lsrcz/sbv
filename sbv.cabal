@@ -229,7 +229,7 @@ Library
 Test-Suite SBVTest
   import           : common-settings
   type             : exitcode-stdio-1.0
-  ghc-options      : -with-rtsopts=-K64m
+  ghc-options      : -with-rtsopts=-K64m -threaded
   other-extensions : DataKinds
                     DeriveAnyClass
                     DeriveDataTypeable
