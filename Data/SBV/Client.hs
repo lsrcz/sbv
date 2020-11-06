@@ -22,6 +22,7 @@ module Data.SBV.Client
   , defaultSolverConfig
   , getAvailableSolvers
   , mkSymbolicEnumeration
+  , mkSymbolicDatatype
   , mkUninterpretedSort
   ) where
 
@@ -32,9 +33,13 @@ import qualified Control.Exception   as C
 
 import qualified "template-haskell" Language.Haskell.TH as TH
 
-import Data.SBV.Core.Data
+import Data.SBV.Core.Data hiding (name)
 import Data.SBV.Core.Model
-import Data.SBV.Provers.Prover
+import Data.SBV.Provers.Prover hiding (name, sName)
+
+import Data.SBV.Tuple  as ST
+import Data.SBV.Either as SE
+import Data.List   (foldl', foldl1')
 
 -- | Check whether the given solver is installed and is ready to go. This call does a
 -- simple call to the solver to ensure all is well.
@@ -151,3 +156,190 @@ ensureEmptyData nm = do
                                            , "    To create an uninterpreted sort, use an empty datatype declaration."
                                            ]
                   pure []
+
+mkSymbolicDatatype :: TH.Name -> TH.Q [TH.Dec]
+mkSymbolicDatatype topType =
+  do TH.TyConI (TH.DataD _ _ tvs _ clauses _) <- TH.reify topType
+     let typeBaseName = TH.nameBase topType
+     let sName = TH.mkName ('S':typeBaseName)
+     let nName = TH.mkName ('N':typeBaseName)
+     let ssName = TH.mkName ('S':'S':typeBaseName)
+     nestedDecl <- mkNestedDec tvs nName clauses
+     symDecl <- mkSymDec tvs sName nName
+     subSymDecl <- mkSubSymDec tvs ssName clauses
+     nestFunc <- mkNestFunc tvs typeBaseName topType nName clauses
+     unNestFunc <- mkUnNestFunc tvs typeBaseName topType nName clauses
+     symCaseFunc <- mkSymCase tvs typeBaseName sName ssName clauses
+     symConsts <- mkSymConsts tvs sName clauses id
+     return (nestedDecl:symDecl:subSymDecl:
+             (nestFunc ++ unNestFunc ++ symCaseFunc ++ symConsts))
+
+ where nestClauses :: [TH.Con] -> TH.TypeQ
+       nestClauses [] = error "No constructors for type"
+       nestClauses [TH.NormalC _ [(_, t)]] =
+         return t
+       nestClauses [TH.NormalC _ params] =
+         foldl' (TH.appT) (TH.tupleT (length params)) [return t | (_, t) <- params]
+       nestClauses list = TH.appT (TH.appT [t| Either |]
+                                     (nestClauses fHalf))
+                               (nestClauses sHalf)
+         where ll = length list
+               (fHalf, sHalf) = splitAt (ll - (length list `div` 2)) list
+
+       mkNestedDec :: [TH.TyVarBndr] -> TH.Name -> [TH.Con] -> TH.Q TH.Dec
+       mkNestedDec tvs nName clauses =
+         TH.tySynD nName tvs $ nestClauses clauses
+
+       getTVName :: TH.TyVarBndr -> TH.Name
+       getTVName (TH.PlainTV name) = name
+       getTVName (TH.KindedTV name _) = name
+
+       addTVs :: [TH.TyVarBndr] -> TH.TypeQ -> TH.TypeQ
+       addTVs tvs con = foldl' TH.appT con $ map (TH.varT . getTVName) tvs
+
+       mkSymDec :: [TH.TyVarBndr] -> TH.Name -> TH.Name -> TH.Q TH.Dec
+       mkSymDec tvs sName nName =
+         TH.tySynD sName tvs [t| SBV $(foldl' TH.appT (TH.conT nName) $ map (TH.varT . getTVName) tvs) |]
+
+       mkSubSymDec :: [TH.TyVarBndr] -> TH.Name -> [TH.Con] -> TH.Q TH.Dec
+       mkSubSymDec tvs ssName clauses =
+         TH.dataD (return [])
+               ssName
+               tvs Nothing [ TH.normalC (let typeBaseName = TH.nameBase name in
+                                      TH.mkName ('S':'S':typeBaseName))
+                                     [ TH.bangType (return pb)
+                                                [t| SBV $(return param) |]
+                                      | (pb, param) <- params ]
+                            | TH.NormalC name params <- clauses ]
+               []
+
+       nestFunClauses :: [TH.Con] -> (TH.ExpQ -> TH.ExpQ) -> [TH.ClauseQ]
+       nestFunClauses [] _ = error "No constructors for type"
+       nestFunClauses [TH.NormalC name params] f =
+         [do names <- mapM (\x -> TH.newName ('p':(show x))) [1..(length params)]
+             TH.clause [ TH.conP name [ TH.varP n | n <- names ] ]
+                    (TH.normalB (f (tupE' (map TH.varE names)))) []]
+       nestFunClauses list f = (nestFunClauses fHalf (f . (\x -> [e| Left $(x) |]))) ++
+                               (nestFunClauses sHalf (f . (\x -> [e| Right $(x) |])))
+         where ll = length list
+               (fHalf, sHalf) = splitAt (ll - (length list `div` 2)) list
+
+       addSymValToTVs :: [TH.TyVarBndr] -> TH.TypeQ -> TH.TypeQ
+       addSymValToTVs [] ty = ty
+       addSymValToTVs tvs ty =
+         do x <- [t| SymVal |]
+            aty <- ty
+            return $ TH.ForallT [] [TH.AppT x (TH.VarT $ getTVName tv) | tv <- tvs] aty
+
+       mkNestFunc :: [TH.TyVarBndr] -> String -> TH.Name -> TH.Name -> [TH.Con] -> TH.Q [TH.Dec]
+       mkNestFunc tvs typeBaseName typeName typeNName clauses =
+         do let nestFunName = ("nest" ++ typeBaseName)
+            let nfName = TH.mkName nestFunName
+            signature <- TH.sigD nfName (addSymValToTVs tvs
+                                       (TH.appT (TH.appT TH.arrowT (addTVs tvs $ TH.conT typeName))
+                                                   (addTVs tvs $ TH.conT typeNName)))
+            declaration <- TH.funD nfName $ nestFunClauses clauses id
+            return [signature, declaration]
+
+       unNestFunClauses :: [TH.Con] -> (TH.PatQ -> TH.PatQ) -> [TH.ClauseQ]
+       unNestFunClauses [] _ = error "No constructors for type"
+       unNestFunClauses [TH.NormalC name params] f =
+         [do names <- mapM (\x -> TH.newName ('p':(show x))) [1..(length params)]
+             TH.clause [f (tupP' (map TH.varP names))]
+                    (TH.normalB (foldl' TH.appE (TH.conE name) [ TH.varE n | n <- names ])) []]
+       unNestFunClauses list f = (unNestFunClauses fHalf (f . (\x -> [p| Left $(x) |]))) ++
+                                 (unNestFunClauses sHalf (f . (\x -> [p| Right $(x) |])))
+         where ll = length list
+               (fHalf, sHalf) = splitAt (ll - (length list `div` 2)) list
+
+       mkUnNestFunc :: [TH.TyVarBndr] -> String -> TH.Name -> TH.Name -> [TH.Con] -> TH.Q [TH.Dec]
+       mkUnNestFunc tvs typeBaseName typeName typeNName clauses =
+         do let unNestFunName = ("unNest" ++ typeBaseName)
+            let unfName = TH.mkName unNestFunName
+            signature <- TH.sigD unfName (TH.appT (TH.appT TH.arrowT (addTVs tvs $ TH.conT typeNName))
+                                                  (addTVs tvs $ TH.conT typeName))
+            declaration <- TH.funD unfName $ unNestFunClauses clauses id
+            return [signature, declaration]
+
+       mkSymCaseRec :: TH.Name -> [TH.Con] -> TH.ExpQ
+       mkSymCaseRec _ [] = error "No constructors for type"
+       mkSymCaseRec func [TH.NormalC name params] =
+         do paramNames <- mapM (\x -> TH.newName ('p':(show x))) [1..(length params)]
+            let ssName = TH.mkName ('S':'S':(TH.nameBase name))
+            let wrapping = [e| (\ $(tupP' $ map TH.varP paramNames) ->
+                               $(TH.varE func)
+                               ($(foldl' (TH.appE) (TH.conE ssName) $ map (TH.varE) paramNames))) |]
+            if length params > 1
+            then [e| $(wrapping) . ST.untuple |]
+            else if (length params > 0)
+                 then wrapping
+                 else [e| $(wrapping) . (const ()) |]
+       mkSymCaseRec func list = [e| SE.either $(mkSymCaseRec func fHalf)
+                                              $(mkSymCaseRec func sHalf) |]
+         where ll = length list
+               (fHalf, sHalf) = splitAt (ll - (length list `div` 2)) list
+
+       mkSymCase :: [TH.TyVarBndr] -> String -> TH.Name -> TH.Name -> [TH.Con] -> TH.Q [TH.Dec]
+       mkSymCase tvs typeBaseName sName ssName clauses =
+         do let symCaseFunName = ("symCase" ++ typeBaseName)
+            let scName = TH.mkName symCaseFunName
+            typeVar <- TH.newName "a"
+            func <- TH.newName "f"
+            signature <- TH.sigD scName $ addSymValToTVs tvs $
+                                       [t| SymVal $(TH.varT typeVar) =>
+                                           ($(addTVs tvs $ TH.conT ssName)
+                                            -> SBV $(TH.varT typeVar))
+                                        -> $(addTVs tvs $ TH.conT sName)
+                                        -> SBV $(TH.varT typeVar) |]
+            declaration <- TH.funD scName $
+                           [TH.clause [TH.varP func]
+                                   (TH.normalB (mkSymCaseRec func clauses)) []]
+            return [signature, declaration]
+
+       mkSymConsts :: [TH.TyVarBndr] -> TH.Name -> [TH.Con] -> (TH.ExpQ -> TH.ExpQ) -> TH.Q [TH.Dec]
+       mkSymConsts _ _ [] _ = error "No constructors for type"
+       mkSymConsts tvs sName [TH.NormalC name params] f =
+         do let nestFunName = ("s" ++ (TH.nameBase name))
+            let nfName = TH.mkName nestFunName
+            signature <- TH.sigD nfName $ addSymValToTVs tvs
+                                       (foldl1' (\x y -> TH.appT (TH.appT TH.arrowT y) x)
+                                         (addTVs tvs(TH.conT sName):
+                                          (reverse [ [t| SBV $(return param) |]
+                                                    | (_, param) <- params ])))
+            declaration <- TH.funD nfName $
+              [do names <- mapM (\x -> TH.newName ('p':(show x))) [1..(length params)]
+                  TH.clause [ TH.varP n | n <- names ]
+                         (TH.normalB (f (if length params > 1
+                                      then [e| ST.tuple $(tupE' (map TH.varE names)) |]
+                                      else if length params > 0
+                                           then tupE' (map TH.varE names)
+                                           else [e| literal () |]))) []]
+            return [signature, declaration]
+       mkSymConsts tvs sName list f =
+         do rfHalf <- (mkSymConsts tvs sName fHalf (f . (\x -> [e| sLeft $(x) |])))
+            rsHalf <- (mkSymConsts tvs sName sHalf (f . (\x -> [e| sRight $(x) |])))
+            return (rfHalf ++ rsHalf)
+         where ll = length list
+               (fHalf, sHalf) = splitAt (ll - (length list `div` 2)) list
+
+       -- | Backwards-compatible handling of unary tuple expressions.
+       --
+       -- From GHC-8.10.1, unary tuples do not map to the plain expression, but
+       -- apply the 'Unit' type. To keep compatibility between several TH versions,
+       -- we restore the old behaviour here.
+       --
+       -- See https://gitlab.haskell.org/ghc/ghc/-/issues/16881
+       tupE' :: [TH.ExpQ] -> TH.ExpQ
+       tupE' [e] = e
+       tupE' es  = TH.tupE es
+
+       -- | Backwards-compatible handling of unary tuple patterns.
+       --
+       -- From GHC-8.10.1, unary tuples do not map to the plain pattern, but
+       -- apply the 'Unit' type. To keep compatibility between several TH versions,
+       -- we restore the old behaviour here.
+       --
+       -- See https://gitlab.haskell.org/ghc/ghc/-/issues/16881
+       tupP' :: [TH.PatQ] -> TH.PatQ
+       tupP' [p] = p
+       tupP' ps  = TH.tupP ps

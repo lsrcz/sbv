@@ -244,6 +244,9 @@ module Data.SBV (
   -- $enumerations
   , mkSymbolicEnumeration
 
+  -- * Datatypes
+  , mkSymbolicDatatype
+
   -- * Uninterpreted sorts, axioms, constants, and functions
   -- $uninterpreted
   , mkUninterpretedSort, Uninterpreted(..), addAxiom
