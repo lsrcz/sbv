@@ -7,6 +7,9 @@
 
   * Current dev version
 
+  * Refactored Inputs to use `IntMap` internally, depending on use case this
+    could yield a 15% speedup. Thanks to Jeffrey Young for the implementation.
+
 ### Version 8.9, 2020-10-28
 
   * Rename 'sbvAvailableSolvers' to 'getAvailableSolvers'.
@@ -53,11 +56,11 @@
   * Add "extraArgs" parameter to SMTConfig to simplify passing extra command line
     arguments to the solver.
 
-  * Add a method 
+  * Add a method
 
         sListArray :: (HasKind a, SymVal b) => b -> [(SBV a, SBV b)] -> array a b
 
-    to the `SymArray` class, which allows for creation of arrays from lists of constant or 
+    to the `SymArray` class, which allows for creation of arrays from lists of constant or
     symbolic lists of pairs. The first argument is the value to use for uninitialized entries.
     Note that the initializer must be a known constant, i.e., it cannot be symbolic. Latter
     elements of the list will overwrite the earlier ones, if there are repeated keys.
@@ -102,7 +105,7 @@
     need its functionality back.
 
   * Reworked SBVBenchSuite api, Phase 1 of BenchSuite completed.
-  
+
   * Add support for addAxiom command to work in the interactive mode.
     Thanks to Martin Lundfall for the feedback.
 
