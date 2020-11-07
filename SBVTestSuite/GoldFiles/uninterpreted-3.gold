@@ -32,5 +32,7 @@
 *** Solver   : Z3
 *** Exit code: ExitSuccess
 
- FINAL:Satisfiable
+ FINAL:Satisfiable. Model:
+  p =  True :: Bool
+  q = False :: Bool
 DONE!

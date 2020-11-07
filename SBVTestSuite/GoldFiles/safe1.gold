@@ -33,5 +33,6 @@
 *** Solver   : Z3
 *** Exit code: ExitSuccess
 
- FINAL: [safe1: Violated]
+ FINAL: [safe1: Violated. Model:
+  s0 = 0 :: Integer]
 DONE!

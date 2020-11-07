@@ -69,4 +69,6 @@
 *** Exit code: ExitSuccess
 
 FINAL OUTPUT:
-Satisfiable
+Satisfiable. Model:
+  i =  2 :: Integer
+  j = 75 :: Integer

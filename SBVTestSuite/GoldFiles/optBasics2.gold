@@ -1,1 +1,4 @@
-Optimal with no assignments.
+Optimal model:
+  x        = 2 :: Integer
+  x_plus_y = 4 :: Integer
+  y        = 2 :: Integer

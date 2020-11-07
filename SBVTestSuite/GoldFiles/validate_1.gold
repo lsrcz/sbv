@@ -47,4 +47,5 @@ FINAL OUTPUT:
 ***
 *** Alleged model:
 ***
-*** Satisfiable
+*** Satisfiable. Model:
+***   x = -3.4028235e38 :: Float

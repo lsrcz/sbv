@@ -46,4 +46,6 @@
 [VALIDATE] All outputs are satisfied. Validation complete.
 
 FINAL OUTPUT:
-Satisfiable
+Satisfiable. Model:
+  x = 13 :: Integer
+  y = 10 :: Integer

@@ -1,1 +1,3 @@
-Optimal with no assignments.
+Optimal model:
+  m = 255 :: Word8
+  x = 127 :: Int8

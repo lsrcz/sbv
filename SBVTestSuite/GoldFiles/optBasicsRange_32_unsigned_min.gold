@@ -1,1 +1,3 @@
-Optimal with no assignments.
+Optimal model:
+  m = 0 :: Word32
+  x = 0 :: Word32

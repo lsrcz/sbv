@@ -45,4 +45,5 @@
 [VALIDATE] All outputs are satisfied. Validation complete.
 
 FINAL OUTPUT:
-Satisfiable
+Satisfiable. Model:
+  x = -Infinity :: Float

@@ -1,30 +1,180 @@
-Pareto front #1: Optimal with no assignments.
-Pareto front #2: Optimal with no assignments.
-Pareto front #3: Optimal with no assignments.
-Pareto front #4: Optimal with no assignments.
-Pareto front #5: Optimal with no assignments.
-Pareto front #6: Optimal with no assignments.
-Pareto front #7: Optimal with no assignments.
-Pareto front #8: Optimal with no assignments.
-Pareto front #9: Optimal with no assignments.
-Pareto front #10: Optimal with no assignments.
-Pareto front #11: Optimal with no assignments.
-Pareto front #12: Optimal with no assignments.
-Pareto front #13: Optimal with no assignments.
-Pareto front #14: Optimal with no assignments.
-Pareto front #15: Optimal with no assignments.
-Pareto front #16: Optimal with no assignments.
-Pareto front #17: Optimal with no assignments.
-Pareto front #18: Optimal with no assignments.
-Pareto front #19: Optimal with no assignments.
-Pareto front #20: Optimal with no assignments.
-Pareto front #21: Optimal with no assignments.
-Pareto front #22: Optimal with no assignments.
-Pareto front #23: Optimal with no assignments.
-Pareto front #24: Optimal with no assignments.
-Pareto front #25: Optimal with no assignments.
-Pareto front #26: Optimal with no assignments.
-Pareto front #27: Optimal with no assignments.
-Pareto front #28: Optimal with no assignments.
-Pareto front #29: Optimal with no assignments.
-Pareto front #30: Optimal with no assignments.
+Pareto front #1: Optimal model:
+  max_x_plus_y = 2 :: Integer
+  min_x        = 1 :: Integer
+  min_y        = 1 :: Integer
+  x            = 1 :: Integer
+  y            = 1 :: Integer
+Pareto front #2: Optimal model:
+  max_x_plus_y = 3 :: Integer
+  min_x        = 0 :: Integer
+  min_y        = 3 :: Integer
+  x            = 0 :: Integer
+  y            = 3 :: Integer
+Pareto front #3: Optimal model:
+  max_x_plus_y = 4 :: Integer
+  min_x        = 0 :: Integer
+  min_y        = 4 :: Integer
+  x            = 0 :: Integer
+  y            = 4 :: Integer
+Pareto front #4: Optimal model:
+  max_x_plus_y = 6 :: Integer
+  min_x        = 2 :: Integer
+  min_y        = 4 :: Integer
+  x            = 2 :: Integer
+  y            = 4 :: Integer
+Pareto front #5: Optimal model:
+  max_x_plus_y = 7 :: Integer
+  min_x        = 3 :: Integer
+  min_y        = 4 :: Integer
+  x            = 3 :: Integer
+  y            = 4 :: Integer
+Pareto front #6: Optimal model:
+  max_x_plus_y = 8 :: Integer
+  min_x        = 4 :: Integer
+  min_y        = 4 :: Integer
+  x            = 4 :: Integer
+  y            = 4 :: Integer
+Pareto front #7: Optimal model:
+  max_x_plus_y = 9 :: Integer
+  min_x        = 5 :: Integer
+  min_y        = 4 :: Integer
+  x            = 5 :: Integer
+  y            = 4 :: Integer
+Pareto front #8: Optimal model:
+  max_x_plus_y = 5 :: Integer
+  min_x        = 1 :: Integer
+  min_y        = 4 :: Integer
+  x            = 1 :: Integer
+  y            = 4 :: Integer
+Pareto front #9: Optimal model:
+  max_x_plus_y = 5 :: Integer
+  min_x        = 3 :: Integer
+  min_y        = 2 :: Integer
+  x            = 3 :: Integer
+  y            = 2 :: Integer
+Pareto front #10: Optimal model:
+  max_x_plus_y = 5 :: Integer
+  min_x        = 4 :: Integer
+  min_y        = 1 :: Integer
+  x            = 4 :: Integer
+  y            = 1 :: Integer
+Pareto front #11: Optimal model:
+  max_x_plus_y = 5 :: Integer
+  min_x        = 5 :: Integer
+  min_y        = 0 :: Integer
+  x            = 5 :: Integer
+  y            = 0 :: Integer
+Pareto front #12: Optimal model:
+  max_x_plus_y = 5 :: Integer
+  min_x        = 2 :: Integer
+  min_y        = 3 :: Integer
+  x            = 2 :: Integer
+  y            = 3 :: Integer
+Pareto front #13: Optimal model:
+  max_x_plus_y = 6 :: Integer
+  min_x        = 5 :: Integer
+  min_y        = 1 :: Integer
+  x            = 5 :: Integer
+  y            = 1 :: Integer
+Pareto front #14: Optimal model:
+  max_x_plus_y = 6 :: Integer
+  min_x        = 4 :: Integer
+  min_y        = 2 :: Integer
+  x            = 4 :: Integer
+  y            = 2 :: Integer
+Pareto front #15: Optimal model:
+  max_x_plus_y = 7 :: Integer
+  min_x        = 4 :: Integer
+  min_y        = 3 :: Integer
+  x            = 4 :: Integer
+  y            = 3 :: Integer
+Pareto front #16: Optimal model:
+  max_x_plus_y = 7 :: Integer
+  min_x        = 5 :: Integer
+  min_y        = 2 :: Integer
+  x            = 5 :: Integer
+  y            = 2 :: Integer
+Pareto front #17: Optimal model:
+  max_x_plus_y = 6 :: Integer
+  min_x        = 3 :: Integer
+  min_y        = 3 :: Integer
+  x            = 3 :: Integer
+  y            = 3 :: Integer
+Pareto front #18: Optimal model:
+  max_x_plus_y = 8 :: Integer
+  min_x        = 5 :: Integer
+  min_y        = 3 :: Integer
+  x            = 5 :: Integer
+  y            = 3 :: Integer
+Pareto front #19: Optimal model:
+  max_x_plus_y = 0 :: Integer
+  min_x        = 0 :: Integer
+  min_y        = 0 :: Integer
+  x            = 0 :: Integer
+  y            = 0 :: Integer
+Pareto front #20: Optimal model:
+  max_x_plus_y = 1 :: Integer
+  min_x        = 1 :: Integer
+  min_y        = 0 :: Integer
+  x            = 1 :: Integer
+  y            = 0 :: Integer
+Pareto front #21: Optimal model:
+  max_x_plus_y = 1 :: Integer
+  min_x        = 0 :: Integer
+  min_y        = 1 :: Integer
+  x            = 0 :: Integer
+  y            = 1 :: Integer
+Pareto front #22: Optimal model:
+  max_x_plus_y = 2 :: Integer
+  min_x        = 2 :: Integer
+  min_y        = 0 :: Integer
+  x            = 2 :: Integer
+  y            = 0 :: Integer
+Pareto front #23: Optimal model:
+  max_x_plus_y = 3 :: Integer
+  min_x        = 3 :: Integer
+  min_y        = 0 :: Integer
+  x            = 3 :: Integer
+  y            = 0 :: Integer
+Pareto front #24: Optimal model:
+  max_x_plus_y = 3 :: Integer
+  min_x        = 2 :: Integer
+  min_y        = 1 :: Integer
+  x            = 2 :: Integer
+  y            = 1 :: Integer
+Pareto front #25: Optimal model:
+  max_x_plus_y = 4 :: Integer
+  min_x        = 3 :: Integer
+  min_y        = 1 :: Integer
+  x            = 3 :: Integer
+  y            = 1 :: Integer
+Pareto front #26: Optimal model:
+  max_x_plus_y = 3 :: Integer
+  min_x        = 1 :: Integer
+  min_y        = 2 :: Integer
+  x            = 1 :: Integer
+  y            = 2 :: Integer
+Pareto front #27: Optimal model:
+  max_x_plus_y = 4 :: Integer
+  min_x        = 1 :: Integer
+  min_y        = 3 :: Integer
+  x            = 1 :: Integer
+  y            = 3 :: Integer
+Pareto front #28: Optimal model:
+  max_x_plus_y = 4 :: Integer
+  min_x        = 4 :: Integer
+  min_y        = 0 :: Integer
+  x            = 4 :: Integer
+  y            = 0 :: Integer
+Pareto front #29: Optimal model:
+  max_x_plus_y = 4 :: Integer
+  min_x        = 2 :: Integer
+  min_y        = 2 :: Integer
+  x            = 2 :: Integer
+  y            = 2 :: Integer
+Pareto front #30: Optimal model:
+  max_x_plus_y = 2 :: Integer
+  min_x        = 0 :: Integer
+  min_y        = 2 :: Integer
+  x            = 0 :: Integer
+  y            = 2 :: Integer

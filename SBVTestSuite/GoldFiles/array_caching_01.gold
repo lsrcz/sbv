@@ -37,4 +37,5 @@
 *** Exit code: ExitSuccess
 
 FINAL OUTPUT:
-Satisfiable
+Satisfiable. Model:
+  x = -1 :: Integer

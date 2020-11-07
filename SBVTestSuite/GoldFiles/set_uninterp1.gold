@@ -106,20 +106,20 @@ Looking for solution 9
 
 FINAL:
 Solution #1:
-Satisfiable
+  s0 = {} :: {E}
 Solution #2:
-Satisfiable
+  s0 = {A} :: {E}
 Solution #3:
-Satisfiable
+  s0 = {A,B} :: {E}
 Solution #4:
-Satisfiable
+  s0 = {A,B,C} :: {E}
 Solution #5:
-Satisfiable
+  s0 = {A,C} :: {E}
 Solution #6:
-Satisfiable
+  s0 = {B} :: {E}
 Solution #7:
-Satisfiable
+  s0 = {C} :: {E}
 Solution #8:
-Satisfiable
+  s0 = {B,C} :: {E}
 Found 8 different solutions.
 DONE!

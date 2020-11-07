@@ -35,5 +35,6 @@
 *** Exit code: ExitSuccess
 
 FINAL:
-Satisfiable
+Satisfiable. Model:
+  s0 = (U - {True},{True}) :: ({Bool}, {Bool})
 DONE!

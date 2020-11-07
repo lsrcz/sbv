@@ -1,1 +1,4 @@
-Optimal with no assignments.
+Optimal model:
+  max-p^._1 =      44 :: Integer
+  max-p^._2 =      36 :: Integer
+  p         = (44,36) :: (Integer, Integer)
