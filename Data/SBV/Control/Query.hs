@@ -59,7 +59,6 @@ import Data.SBV.Utils.SExpr
 
 import Data.SBV.Control.Types
 import Data.SBV.Control.Utils
-import Data.SBV.SMT.SMT (SatResult(..))
 
 -- | An Assignment of a model binding
 data Assignment = Assign SVal CV
@@ -837,9 +836,6 @@ mkSMTResult asgns = do
                               , modelAssocs     = M.fromList assocs
                               , modelUIFuns     = []
                               }
-
-             io $ print m
-             io $ print $ SatResult $ Satisfiable queryConfig m
 
              return $ Satisfiable queryConfig m
 
