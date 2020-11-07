@@ -1,4 +1,1 @@
-Optimal model:
-  x        = 1 :: Integer
-  y        = 1 :: Integer
-  x_plus_y = 2 :: Integer
+Optimal with no assignments.

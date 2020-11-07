@@ -43,6 +43,7 @@ import GHC.Stack
 import Data.Int
 import Data.Word
 import Data.Proxy
+import Data.Foldable (foldr')
 
 -- Doctest only
 -- $setup
@@ -234,7 +235,7 @@ diffSign x y = svNot (sameSign x y)
 
 -- | Check all true
 svAll :: [SVal] -> SVal
-svAll = foldr svAnd svTrue
+svAll = foldr' svAnd svTrue
 
 -- | Are all the bits between a b (inclusive) zero?
 allZero :: Int -> Int -> SBV a -> SVal

@@ -83,7 +83,7 @@ Library
   build-depends   : crackNum
                   , QuickCheck, template-haskell
                   , array, async, containers, deepseq, directory, filepath, time
-                  , pretty, process, mtl, random, syb, transformers, uniplate
+                  , pretty, process, mtl, random, syb, transformers, uniplate, text
   Exposed-modules : Data.SBV
                   , Data.SBV.Control
                   , Data.SBV.Dynamic
@@ -414,7 +414,7 @@ Test-Suite SBVHLint
 Benchmark SBVBenchmark
   import          : common-settings
   type            : exitcode-stdio-1.0
-  ghc-options     : -with-rtsopts=-K64m
+  ghc-options     : -with-rtsopts=-K64m -threaded
   other-extensions: DataKinds
                     DeriveAnyClass
                     DeriveDataTypeable
@@ -519,7 +519,7 @@ Benchmark SBVBenchmark
 Benchmark SBVBench
   import          : common-settings
   type            : exitcode-stdio-1.0
-  ghc-options     : -with-rtsopts=-K64m
+  ghc-options     : -with-rtsopts=-K64m -threaded
   other-extensions: DataKinds
                     DeriveAnyClass
                     DeriveDataTypeable

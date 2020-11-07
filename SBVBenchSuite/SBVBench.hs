@@ -13,13 +13,16 @@
 -- "deep dive".
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE BangPatterns #-}
+
 module Main where
 
 import           Gauge.Main.Options (defaultConfig, Config(..))
 
--- import           Utils.SBVBenchFramework
+import           Utils.SBVBenchFramework
+import           Control.Monad (foldM)
 
-import Documentation.SBV.Examples.Puzzles.Counts
+-- import Documentation.SBV.Examples.Puzzles.Counts
 
 -- | Custom config to limit benchmarks to 5 minutes of runtime. This is required
 -- because we can easily generate benchmarks that take a lot of wall time to
@@ -47,14 +50,22 @@ can be compared in the usual way with BenchShow: `cabal repl SBVBench;
 compareBenchMarksCli "SBVBenchSuite/BenchFiles/mergeableTuning.csv"`
 -}
 
-main :: IO ()
-main = do
+bad = sat $ do bs <- mapM (const free_) [1..1000]
+               foldM go sTrue bs
+  where go x !acc = let !s = x .&& acc
+                    in do constrain s
+                          return s
+
+good = sat $ do bs <- mapM (const free_) [1..1000]
+                foldM go sTrue bs
+  where go x acc = return $! x .&& acc
+
+main = do print =<< length . show <$> bad
+          print =<< length . show <$> good
   -- generate the benchmark file name
   -- let f = benchResultsFile "<your-test-name-here>"
 
   -- Your code on interest here
-  putStrLn "running"
-  counts
 
   -- satisfying the type system
   -- return ()

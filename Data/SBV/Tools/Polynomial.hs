@@ -27,6 +27,7 @@ import Data.Bits  (Bits(..))
 import Data.List  (genericTake)
 import Data.Maybe (fromJust, fromMaybe)
 import Data.Word  (Word8, Word16, Word32, Word64)
+import Data.Foldable (foldr')
 
 import Data.SBV.Core.Data
 import Data.SBV.Core.Sized
@@ -47,7 +48,7 @@ class (Num a, Bits a) => Polynomial a where
  -- For instance
  --
  --     @polynomial [0, 1, 3] :: SWord8@
- -- 
+ --
  -- will evaluate to @11@, since it sets the bits @0@, @1@, and @3@. Mathematicians would write this polynomial
  -- as @x^3 + x + 1@. And in fact, 'showPoly' will show it like that.
  polynomial :: [Int] -> a
@@ -76,7 +77,7 @@ class (Num a, Bits a) => Polynomial a where
  showPolynomial :: Bool -> a -> String
 
  {-# MINIMAL pMult, pDivMod, showPolynomial #-}
- polynomial = foldr (flip setBit) 0
+ polynomial = foldr' (flip setBit) 0
  pAdd       = xor
  pDiv x y   = fst (pDivMod x y)
  pMod x y   = snd (pDivMod x y)
@@ -106,7 +107,7 @@ liftS f s
 sp :: Bits a => Bool -> a -> String
 sp st a
  | null cs = '0' : t
- | True    = foldr (\x y -> sh x ++ " + " ++ y) (sh (last cs)) (init cs) ++ t
+ | True    = foldr' (\x y -> sh x ++ " + " ++ y) (sh (last cs)) (init cs) ++ t
  where t | st   = " :: GF(2^" ++ show n ++ ")"
          | True = ""
        n  = fromMaybe (error "SBV.Polynomial.sp: Unexpected non-finite usage!") (bitSizeMaybe a)
@@ -149,7 +150,7 @@ polyMult (x, y, red)
   = fromBitsLE $ genericTake sz $ r ++ repeat sFalse
   where (_, r) = mdp ms rs
         ms = genericTake (2*sz) $ mul (blastLE x) (blastLE y) [] ++ repeat sFalse
-        rs = genericTake (2*sz) $ [fromBool (i `elem` red) |  i <- [0 .. foldr max 0 red] ] ++ repeat sFalse
+        rs = genericTake (2*sz) $ [fromBool (i `elem` red) |  i <- [0 .. foldr' max 0 red] ] ++ repeat sFalse
         sz = intSizeOf x
         mul _  []     ps = ps
         mul as (b:bs) ps = mul (sFalse:as) bs (ites b (as `addPoly` ps) ps)

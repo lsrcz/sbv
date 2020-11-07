@@ -10,6 +10,7 @@
 -----------------------------------------------------------------------------
 
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE BangPatterns   #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -117,11 +118,11 @@ mergeSExpr (x:xs)
        parenDiff :: String -> Int
        parenDiff = go 0
          where go i ""       = i
-               go i ('(':cs) = let i'= i+1 in i' `seq` go i' cs
-               go i (')':cs) = let i'= i-1 in i' `seq` go i' cs
-               go i ('"':cs) = go i (skipString cs)
-               go i ('|':cs) = go i (skipBar cs)
-               go i (_  :cs) = go i cs
+               go !i ('(':cs) = let i'= i+1 in i' `seq` go i' cs
+               go !i (')':cs) = let i'= i-1 in i' `seq` go i' cs
+               go !i ('"':cs) = go i (skipString cs)
+               go !i ('|':cs) = go i (skipBar cs)
+               go !i (_  :cs) = go i cs
 
        grab i ls
          | i <= 0    = ([], ls)

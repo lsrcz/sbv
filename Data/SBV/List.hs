@@ -34,6 +34,7 @@ module Data.SBV.List (
 
 import Prelude hiding (head, tail, init, length, take, drop, concat, null, elem, notElem)
 import qualified Prelude as P
+import Data.Foldable (foldr')
 
 import Data.SBV.Core.Data hiding (StrOp(..))
 import Data.SBV.Core.Model
@@ -162,7 +163,7 @@ elemAt l i
 -- >>> prove $ \(e1 :: SInteger) e2 e3 -> map (elemAt (implode [e1, e2, e3])) (map literal [0 .. 2]) .== [e1, e2, e3]
 -- Q.E.D.
 implode :: SymVal a => [SBV a] -> SList a
-implode = foldr ((.++) . singleton) (literal [])
+implode = foldr' ((.++) . singleton) (literal [])
 
 -- | Concatenate two lists. See also `.++`.
 concat :: SymVal a => SList a -> SList a -> SList a

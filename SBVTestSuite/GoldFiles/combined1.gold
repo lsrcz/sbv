@@ -1,6 +1,1 @@
-Optimal model:
-  x     = 3 :: Integer
-  y     = 2 :: Integer
-  z     = 4 :: Integer
-  max_x = 3 :: Integer
-  max_y = 2 :: Integer
+Optimal with no assignments.

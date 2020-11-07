@@ -60,13 +60,10 @@ Looking for solution 4
 *** Exit code: ExitSuccess
 
  FINAL:Solution #1:
-  p =  True :: Bool
-  q = False :: Bool
+Satisfiable
 Solution #2:
-  p = False :: Bool
-  q =  True :: Bool
+Satisfiable
 Solution #3:
-  p = True :: Bool
-  q = True :: Bool
+Satisfiable
 Found 3 different solutions.
 DONE!

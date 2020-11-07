@@ -204,29 +204,5 @@
 *** Solver   : Z3
 *** Exit code: ExitSuccess
 
- FINAL:Satisfiable. Model:
-  a        =                    0 :: Integer
-  vBool    =                 True :: Bool
-  vWord8   =                    1 :: Word8
-  s5       =                    2 :: Word16
-  s6       =                    3 :: Word32
-  vWord64  =                    4 :: Word64
-  vInt8    =                    5 :: Int8
-  s9       =                    6 :: Int16
-  s10      =                    7 :: Int32
-  vInt64   =                    8 :: Int64
-  vFloat   =                  9.0 :: Float
-  s13      =                 10.0 :: Double
-  s14      =                 11.0 :: Real
-  vInteger =                   12 :: Integer
-  vBinOp   =                 Plus :: BinOp
-  i1       =                    1 :: Integer
-  i2       =                False :: Bool
-  mustBe42 =                   42 :: Integer
-  mustBeX  =                  'X' :: Char
-  vString  =              "hello" :: String
-  vList1   =            [1,2,3,4] :: [Integer]
-  vList2   =  [[1,2,3],[4,5,6,7]] :: [[Integer]]
-  vList3   =                [1,2] :: [Word8]
-  vList4   = [[1,2,3],[],[4,5,6]] :: [[Word16]]
+ FINAL:Satisfiable
 DONE!
