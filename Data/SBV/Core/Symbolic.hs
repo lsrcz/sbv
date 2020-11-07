@@ -1992,12 +1992,11 @@ instance NFData SMTConfig where
 data SMTModel = SMTModel {
        modelObjectives :: [(String, GeneralizedCV)]                     -- ^ Mapping of symbolic values to objective values.
      , modelBindings   :: Maybe [((Quantifier, NamedSymVar), Maybe CV)] -- ^ Mapping of input variables as reported by the solver. Only collected if model validation is requested.
-     , modelAssocs     :: Map.Map String CV                                -- ^ Mapping of symbolic values to constants.
+     , modelAssocs     :: Map.Map String CV                             -- ^ Mapping of symbolic values to constants.
      , modelUIFuns     :: [(String, (SBVType, ([([CV], CV)], CV)))]     -- ^ Mapping of uninterpreted functions to association lists in the model.
                                                                         -- Note that an uninterpreted constant (function of arity 0) will be stored
                                                                         -- in the 'modelAssocs' field.
-     }
-     deriving Show
+     } deriving Show
 
 -- | The result of an SMT solver call. Each constructor is tagged with
 -- the 'SMTConfig' that created it so that further tools can inspect it

@@ -30,6 +30,7 @@
 [GOOD] (assert s7)
 [SEND] (check-sat)
 [RECV] sat
+*** In a quantified context, obvservables will not be printed.
 [SEND] (get-value (s1))
 [RECV] ((s1 10))
 [SEND] (get-value (s0))
@@ -37,8 +38,8 @@
 *** Solver   : Z3
 *** Exit code: ExitSuccess
 [VALIDATE] Validating the model. Assignment:
-[VALIDATE]       y = 10 :: Integer
 [VALIDATE]       x = 13 :: Integer
+[VALIDATE]       y = 10 :: Integer
 [VALIDATE] Validating 2 constraint(s).
 [VALIDATE] Validated all constraints.
 [VALIDATE] Validating outputs.

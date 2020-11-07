@@ -1198,8 +1198,8 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                        endMsg $ Just $ "[" ++ m ++ "]"
                                        return sofar{ allSatSolverReturnedDSat = True }
 
-                          Sat    -> do assocs <- mapM (\(sval, (NamedSymVar sv n)) -> do cv <- getValueCV Nothing sv
-                                                                                         return (sv, (n, (sval, cv)))) vars
+                          Sat    -> do assocs <- mapM (\(sval, NamedSymVar sv n) -> do cv <- getValueCV Nothing sv
+                                                                                       return (sv, (n, (sval, cv)))) vars
 
                                        let getUIFun ui@(nm, t) = do cvs <- getUIFunCVAssoc Nothing ui
                                                                     return (nm, (t, cvs))
@@ -1214,7 +1214,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                            return []
 
                                        bindings <- let grab i@(ALL, _)      = return (i, Nothing)
-                                                       grab i@(EX, (getSV -> sv)) = case sv `lookup` assocs of
+                                                       grab i@(EX, getSV -> sv) = case sv `lookup` assocs of
                                                                                       Just (_, (_, cv)) -> return (i, Just cv)
                                                                                       Nothing           -> do cv <- getValueCV Nothing sv
                                                                                                               return (i, Just cv)

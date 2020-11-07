@@ -44,7 +44,7 @@ import qualified Data.IntMap.Strict as IM
 
 import Data.Char     (toLower)
 import Data.Text     (unpack)
-import Data.List     (intercalate, nubBy, sortOn)
+import Data.List     (intercalate, nubBy)
 import Data.Maybe    (listToMaybe, catMaybes)
 import Data.Function (on)
 import Data.Bifunctor (second)
@@ -59,6 +59,7 @@ import Data.SBV.Utils.SExpr
 
 import Data.SBV.Control.Types
 import Data.SBV.Control.Utils
+import Data.SBV.SMT.SMT (SatResult(..))
 
 -- | An Assignment of a model binding
 data Assignment = Assign SVal CV
@@ -344,7 +345,7 @@ getModelAtIndex mbi = do
           !inputAssocs <- mconcat . mconcat . M.elems <$> mapM (mapM grab) allModelInputs
 
           let --TODO this is a map merge through a list, just do the map merge
-              !assocs    = M.fromList $! sortOn fst obsvs <> M.elems inputAssocs
+              !assocs    = M.fromList $! obsvs <> M.elems inputAssocs
 
 
           -- collect UIs, and UI functions if requested
@@ -362,7 +363,7 @@ getModelAtIndex mbi = do
           bindings <- let get i@(ALL, _)      = return (i, Nothing)
                           get i@(EX, getSV -> sv) = case sv `M.lookup` inputAssocs of
                                                   Just (_, cv) -> return (i, Just cv)
-                                                  Nothing      -> do cv <- getValueCV mbi sv
+                                                  Nothing      -> do !cv <- getValueCV mbi sv
                                                                      return (i, Just cv)
 
                           flipQ i@(q, sv) = case (isSAT, q) of
@@ -836,6 +837,9 @@ mkSMTResult asgns = do
                               , modelAssocs     = M.fromList assocs
                               , modelUIFuns     = []
                               }
+
+             io $ print m
+             io $ print $ SatResult $ Satisfiable queryConfig m
 
              return $ Satisfiable queryConfig m
 
