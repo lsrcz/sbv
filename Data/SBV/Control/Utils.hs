@@ -1150,11 +1150,11 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                          w = ALL `elem` map fst qinps
 
                      res <- loop grabObservables topState (allUiFuns, uiFuns) allUiRegs qinps vars cfg AllSatResult { allSatMaxModelCountReached  = False
-                                                                                                                                 , allSatHasPrefixExistentials = w
-                                                                                                                                 , allSatSolverReturnedUnknown = False
-                                                                                                                                 , allSatSolverReturnedDSat    = False
-                                                                                                                                 , allSatResults               = []
-                                                                                                                                 }
+                                                                                                                    , allSatHasPrefixExistentials = w
+                                                                                                                    , allSatSolverReturnedUnknown = False
+                                                                                                                    , allSatSolverReturnedDSat    = False
+                                                                                                                    , allSatResults               = []
+                                                                                                                    }
                      -- results come out in reverse order, so reverse them:
                      pure $ res { allSatResults = reverse (allSatResults res) }
 

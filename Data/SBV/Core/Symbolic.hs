@@ -64,7 +64,7 @@ module Data.SBV.Core.Symbolic
   ) where
 
 import Control.Arrow               ((***))
-import Control.DeepSeq             (NFData(..),force)
+import Control.DeepSeq             (NFData(..))
 import Control.Monad               (when)
 import Control.Monad.Except        (MonadError, ExceptT)
 import Control.Monad.Reader        (MonadReader(..), ReaderT, runReaderT,
@@ -1016,7 +1016,7 @@ addUserInput q sv nm = goAll . goUser
         goUser = onUserInps (nid `IMap.insert` (q, new))
         goAll  = onAllInps  (Set.insert nm)
 
--- TODO add old String code has been pushed to edges
+-- TODO add once old String code has been pushed to edges
 -- addNamedUserInput :: Quantifier -> NamedSymVar -> Inputs -> Inputs
 -- addNamedUserInput q new = goAll . goUser
 --   where goUser          = onUserInps (nid `IMap.insert` (q, new))
@@ -1165,7 +1165,7 @@ noInteractiveEver ss = error $ unlines $  ""
 modifyState :: State -> (State -> IORef a) -> (a -> a) -> IO () -> IO ()
 {-# INLINE modifyState #-}
 modifyState st@State{runMode} field update interactiveUpdate = do
-        R.modifyIORef' (field st) (force update)
+        R.modifyIORef' (field st) update
         !rm <- readIORef runMode
         case rm of
           SMTMode _ IRun _ _ -> interactiveUpdate
