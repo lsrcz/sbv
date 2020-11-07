@@ -1,5 +1,5 @@
 *** Data.SBV: Problem needs optimization of metric in the scope of universally quantified variable(s):
 ***
-***          goal [Depends on: x, y]
+***          goal [Depends on: y, x]
 ***
 *** Optimization is only meaningful with existentially quantified metrics.

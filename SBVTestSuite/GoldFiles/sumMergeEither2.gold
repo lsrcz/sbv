@@ -32,13 +32,13 @@
 [GOOD] (assert s5)
 [SEND] (check-sat)
 [RECV] sat
-[SEND] (get-value (s0))
-[RECV] ((s0 (right_SBVEither false)))
-[SEND] (get-value (s1))
-[RECV] ((s1 (right_SBVEither false)))
 [SEND] (get-value (s2))
 [RECV] ((s2 false))
+[SEND] (get-value (s1))
+[RECV] ((s1 (right_SBVEither false)))
+[SEND] (get-value (s0))
+[RECV] ((s0 (right_SBVEither false)))
 
-MODEL: SMTModel {modelObjectives = [], modelBindings = Nothing, modelAssocs = [("s0",Right False :: Either Integer Bool),("s1",Right False :: Either Integer Bool),("s2",False :: Bool)], modelUIFuns = []}
+MODEL: SMTModel {modelObjectives = [], modelBindings = Nothing, modelAssocs = fromList [("s0",Right False :: Either Integer Bool),("s1",Right False :: Either Integer Bool),("s2",False :: Bool)], modelUIFuns = []}
 DONE.*** Solver   : Z3
 *** Exit code: ExitSuccess

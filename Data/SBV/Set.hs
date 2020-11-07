@@ -53,6 +53,7 @@ import Prelude hiding (null)
 
 import Data.Proxy (Proxy(Proxy))
 import qualified Data.Set as Set
+import Data.Foldable (foldr')
 
 import Data.SBV.Core.Data
 import Data.SBV.Core.Model    ((.==), (./=))
@@ -449,7 +450,7 @@ union sa sb
 -- >>> prove $ unions [] .== (empty :: SSet Integer)
 -- Q.E.D.
 unions :: (Ord a, SymVal a) => [SSet a] -> SSet a
-unions = foldr union empty
+unions = foldr' union empty
 
 -- | Intersection.
 --
@@ -492,7 +493,7 @@ intersection sa sb
 -- >>> prove $ intersections [] .== (full :: SSet Integer)
 -- Q.E.D.
 intersections :: (Ord a, SymVal a) => [SSet a] -> SSet a
-intersections = foldr intersection full
+intersections = foldr' intersection full
 
 -- | Difference.
 --

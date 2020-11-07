@@ -54,14 +54,12 @@
 [GOOD] (assert s31)
 [SEND] (check-sat)
 [RECV] sat
-[SEND] (get-value (s0))
-[RECV] ((s0 2))
 [SEND] (get-value (s1))
 [RECV] ((s1 75))
+[SEND] (get-value (s0))
+[RECV] ((s0 2))
 *** Solver   : Z3
 *** Exit code: ExitSuccess
 
 FINAL OUTPUT:
-Satisfiable. Model:
-  i =  2 :: Integer
-  j = 75 :: Integer
+Satisfiable

@@ -1,3 +1,1 @@
-Optimal model:
-  x = 65535 :: Word16
-  m = 65535 :: Word16
+Optimal with no assignments.

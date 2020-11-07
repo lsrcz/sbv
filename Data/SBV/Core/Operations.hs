@@ -51,6 +51,7 @@ module Data.SBV.Core.Operations
 
 import Data.Bits (Bits(..))
 import Data.List (genericIndex, genericLength, genericTake)
+import Data.Foldable (foldr')
 
 import qualified Data.IORef         as R    (modifyIORef', newIORef, readIORef)
 import qualified Data.Map.Strict    as Map  (toList, fromList, lookup)
@@ -195,7 +196,7 @@ svExp b e
   = prod $ zipWith (\use n -> svIte use n one)
                    (svBlastLE e)
                    (iterate (\x -> svTimes x x) b)
-  where prod = foldr svTimes one
+  where prod = foldr' svTimes one
         one  = svInteger (kindOf b) 1
 
 -- | Bit-blast: Little-endian. Assumes the input is a bit-vector.
@@ -370,13 +371,14 @@ svGreaterEq x y
 
 -- | Bitwise and.
 svAnd :: SVal -> SVal -> SVal
-svAnd x y
+{-# INLINE svAnd #-}
+svAnd !x !y
   | isConcreteZero x = x
   | isConcreteOnes x = y
   | isConcreteZero y = y
   | isConcreteOnes y = x
   | True             = liftSym2 (mkSymOpSC opt And) (const (const True)) (noReal ".&.") (.&.) (noFloat ".&.") (noDouble ".&.") x y
-  where opt a b
+  where opt !a !b
           | a == falseSV || b == falseSV = Just falseSV
           | a == trueSV                  = Just b
           | b == trueSV                  = Just a
@@ -384,6 +386,7 @@ svAnd x y
 
 -- | Bitwise or.
 svOr :: SVal -> SVal -> SVal
+{-# INLINE svOr #-}
 svOr x y
   | isConcreteZero x = y
   | isConcreteOnes x = x
@@ -1313,10 +1316,11 @@ here to ignore these cases.
 See http://github.com/LeventErkok/sbv/issues/379 for some further discussion.
 -}
 liftSV2 :: (State -> Kind -> SV -> SV -> IO SV) -> Kind -> SVal -> SVal -> Cached SV
-liftSV2 opS k a b = cache c
-  where c st = do sw1 <- svToSV st a
-                  sw2 <- svToSV st b
-                  opS st k sw1 sw2
+{-# INLINE liftSV2 #-}
+liftSV2 opS !k !a !b = cache c
+  where c !st = do !sw1 <- svToSV st a
+                   !sw2 <- svToSV st b
+                   opS st k sw1 sw2
 
 liftSym2 :: (State -> Kind -> SV -> SV -> IO SV)
          -> (CV      -> CV      -> Bool)
@@ -1325,8 +1329,9 @@ liftSym2 :: (State -> Kind -> SV -> SV -> IO SV)
          -> (Float   -> Float   -> Float)
          -> (Double  -> Double  -> Double)
          -> SVal     -> SVal    -> SVal
+{-# INLINE liftSym2 #-}
 liftSym2 _   okCV opCR opCI opCF opCD   (SVal k (Left a)) (SVal _ (Left b)) | okCV a b = SVal k . Left  $! mapCV2 opCR opCI opCF opCD noCharLift2 noStringLift2 noUnint2 a b
-liftSym2 opS _    _    _    _    _    a@(SVal k _)        b                            = SVal k $ Right $  liftSV2 opS k a b
+liftSym2 opS _    _    _    _    _    a@(SVal k _)        b                            = SVal k $ Right $! liftSV2 opS k a b
 
 liftSym2B :: (State -> Kind -> SV -> SV -> IO SV)
           -> (CV                  -> CV                  -> Bool)
@@ -1343,7 +1348,7 @@ liftSym2B :: (State -> Kind -> SV -> SV -> IO SV)
           -> ((Maybe Int, String) -> (Maybe Int, String) -> Bool)
           -> SVal                 -> SVal                -> SVal
 liftSym2B _   okCV opCR opCI opCF opCD opCC opCS opCSeq opCTup opCMaybe opCEither opUI (SVal _ (Left a)) (SVal _ (Left b)) | okCV a b = svBool (liftCV2 opCR opCI opCF opCD opCC opCS opCSeq opCTup opCMaybe opCEither opUI a b)
-liftSym2B opS _    _    _    _    _    _    _    _      _      _        _         _    a                 b                            = SVal KBool $ Right $ liftSV2 opS KBool a b
+liftSym2B opS _    _    _    _    _    _    _    _      _      _        _         _    a                 b                            = SVal KBool $ Right $! liftSV2 opS KBool a b
 
 -- | Create a symbolic two argument operation; with shortcut optimizations
 mkSymOpSC :: (SV -> SV -> Maybe SV) -> Op -> State -> Kind -> SV -> SV -> IO SV

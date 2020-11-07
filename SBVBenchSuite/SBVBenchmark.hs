@@ -130,7 +130,7 @@ import qualified BenchSuite.Transformers.SymbolicEval
 -- because we can easily generate benchmarks that take a lot of wall time to
 -- solve, especially with 'Data.SBV.allSatWith' calls
 benchConfig :: Config
-benchConfig = defaultConfig { timeLimit = Just 1.00 }
+benchConfig = defaultConfig { timeLimit = Just 120.00 }
 
 {-
 To benchmark sbv we require two use cases: For continuous integration we want a

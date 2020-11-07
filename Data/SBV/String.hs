@@ -37,6 +37,7 @@ module Data.SBV.String (
 
 import Prelude hiding (head, tail, init, length, take, drop, concat, null)
 import qualified Prelude as P
+import Data.Foldable (foldr')
 
 import Data.SBV.Core.Data hiding (SeqOp(..))
 import Data.SBV.Core.Model
@@ -165,7 +166,7 @@ strToCharAt s i
 -- >>> prove $ \c1 c2 c3 -> map (strToCharAt (implode [c1, c2, c3])) (map literal [0 .. 2]) .== [c1, c2, c3]
 -- Q.E.D.
 implode :: [SChar] -> SString
-implode = foldr ((.++) . singleton) ""
+implode = foldr' ((.++) . singleton) ""
 
 -- | Prepend an element, the traditional @cons@.
 infixr 5 .:

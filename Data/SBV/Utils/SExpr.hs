@@ -21,6 +21,7 @@ import Data.Either (partitionEithers)
 import Data.List   (isPrefixOf)
 import Data.Maybe  (fromMaybe, listToMaybe)
 import Data.Word   (Word32, Word64)
+import Data.Foldable (foldr')
 
 import Numeric    (readInt, readDec, readHex, fromRat)
 
@@ -239,7 +240,7 @@ getTripleFloat s e m = wordToFloat w32
         expt      = [e `testBit` i | i <- [ 7,  6 .. 0]]
         mantissa  = [m `testBit` i | i <- [22, 21 .. 0]]
         positions = [i | (i, b) <- zip [31, 30 .. 0] (sign ++ expt ++ mantissa), b]
-        w32       = foldr (flip setBit) (0::Word32) positions
+        w32       = foldr' (flip setBit) (0::Word32) positions
 
 -- | Convert an (s, e, m) triple to a float value
 getTripleDouble :: Integer -> Integer -> Integer -> Double
@@ -248,7 +249,7 @@ getTripleDouble s e m = wordToDouble w64
         expt      = [e `testBit` i | i <- [10,  9 .. 0]]
         mantissa  = [m `testBit` i | i <- [51, 50 .. 0]]
         positions = [i | (i, b) <- zip [63, 62 .. 0] (sign ++ expt ++ mantissa), b]
-        w64       = foldr (flip setBit) (0::Word64) positions
+        w64       = foldr' (flip setBit) (0::Word64) positions
 
 -- | Special constants of SMTLib2 and their internal translation. Mainly
 -- rounding modes for now.
@@ -339,7 +340,7 @@ parseLambdaExpression funExpr = case funExpr of
                         build :: SExpr -> [(String, SExpr)] -> Maybe [(String, SExpr)]
                         build (EApp (ECon "and" : rest)) sofar = let next _ Nothing  = Nothing
                                                                      next c (Just x) = build c x
-                                                                 in foldr next (Just sofar) rest
+                                                                 in foldr' next (Just sofar) rest
 
                         build expr sofar | Just (v, r) <- grok expr, v `elem` params = Just $ (v, r) : sofar
                                          | True                                      = Nothing

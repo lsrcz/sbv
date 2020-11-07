@@ -14,10 +14,9 @@
 
 module BenchSuite.Optimization.Instances where
 
-import Data.SBV
-
 import Control.DeepSeq
 
+import Data.SBV
 
 -- | orphaned instance for benchmarks
 instance NFData OptimizeResult where rnf x = seq x ()

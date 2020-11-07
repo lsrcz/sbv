@@ -33,7 +33,5 @@
 *** Solver   : Z3
 *** Exit code: ExitSuccess
 
- FINAL:Satisfiable. Model:
-  c = Q!val!0 :: Q
-  d = Q!val!1 :: Q
+ FINAL:Satisfiable
 DONE!

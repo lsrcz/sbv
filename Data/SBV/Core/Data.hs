@@ -44,7 +44,7 @@ module Data.SBV.Core.Data
  , sbvToSV, sbvToSymSV, forceSVArg
  , SBVExpr(..), newExpr
  , cache, Cached, uncache, uncacheAI, HasKind(..)
- , Op(..), PBOp(..), FPOp(..), StrOp(..), SeqOp(..), RegExp(..), NamedSymVar, getTableIndex
+ , Op(..), PBOp(..), FPOp(..), StrOp(..), SeqOp(..), RegExp(..), NamedSymVar(..), getSV,getUserName', getTableIndex
  , SBVPgm(..), Symbolic, runSymbolic, State, getPathCondition, extendPathCondition
  , inSMTMode, SBVRunMode(..), Kind(..), Outputtable(..), Result(..)
  , SolverContext(..), internalVariable, internalConstraint, isCodeGenMode
@@ -70,6 +70,7 @@ import Data.Maybe             (fromMaybe)
 
 import Data.Proxy
 import Data.Typeable          (Typeable)
+import Data.Foldable          (foldr',foldl')
 
 import qualified Data.Generics as G    (Data(..))
 
@@ -286,11 +287,11 @@ fromBool False = sFalse
 
 -- | Generalization of 'and'
 sAnd :: [SBool] -> SBool
-sAnd = foldr (.&&) sTrue
+sAnd = foldr' (.&&) sTrue
 
 -- | Generalization of 'or'
 sOr :: [SBool] -> SBool
-sOr  = foldr (.||) sFalse
+sOr  = foldr' (.||) sFalse
 
 -- | Generalization of 'any'
 sAny :: (a -> SBool) -> [a] -> SBool
@@ -665,7 +666,7 @@ instance SymArray SArray where
   mergeArrays (SBV t)      (SArray a) (SArray b) = SArray (mergeSArr t a b)
 
   sListArray :: forall a b. (HasKind a, SymVal b) => b -> [(SBV a, SBV b)] -> SArray a b
-  sListArray initializer = foldl (uncurry . writeArray) arr
+  sListArray initializer = foldl' (uncurry . writeArray) arr
     where arr = SArray $ SArr ks $ cache r
            where ks   = (kindOf (Proxy @a), kindOf (Proxy @b))
                  r st = do amap <- R.readIORef (rArrayMap st)
@@ -714,7 +715,7 @@ instance SymArray SFunArray where
   mergeArrays (SBV t) (SFunArray a) (SFunArray b) = SFunArray (mergeSFunArr t a b)
 
   sListArray :: forall a b. (HasKind a, SymVal b) => b -> [(SBV a, SBV b)] -> SFunArray a b
-  sListArray initializer = foldl (uncurry . writeArray) arr
+  sListArray initializer = foldl' (uncurry . writeArray) arr
     where arr = SFunArray $ SFunArr ks $ cache r
            where ks = (kindOf (Proxy @a), kindOf (Proxy @b))
 

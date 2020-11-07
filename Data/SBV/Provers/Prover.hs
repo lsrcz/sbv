@@ -9,6 +9,7 @@
 -- Provable abstraction and the connection to SMT solvers
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -17,6 +18,7 @@
 {-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -53,8 +55,9 @@ import Data.List (intercalate, isPrefixOf, nub)
 import Data.Maybe (mapMaybe, listToMaybe)
 
 import qualified Data.Map.Strict as M
-import qualified Data.Foldable   as S (toList)
+import qualified Data.Foldable   as S (toList,foldr')
 
+import Data.Text (unpack)
 import Data.SBV.Core.Data
 import Data.SBV.Core.Symbolic
 import Data.SBV.SMT.SMT
@@ -276,21 +279,24 @@ class ExtractIO m => MProvable m a where
                                           ]
 
 
-                   let universals = [s | (ALL, s) <- qinps]
+                   let universals :: [NamedSymVar]
+                       universals = getForAlls qinps
 
                        firstUniversal
                          | null universals = error "Data.SBV: Impossible happened! Universal optimization with no universals!"
-                         | True            = minimum (map (nodeId . fst) universals)
+                         | True            = minimum (map (nodeId . getSV) universals)
 
                        nodeId (SV _ n) = n
 
                        mappings :: M.Map SV SBVExpr
                        mappings = M.fromList (S.toList (pgmAssignments spgm))
 
-                       chaseUniversal entry = map snd $ go entry []
-                         where go x sofar
+                       chaseUniversal :: SV -> [NamedSymVar]
+                       chaseUniversal entry = go entry []
+                         where
+                           go x !sofar
                                 | nx >= firstUniversal
-                                = nub $ [unm | unm@(u, _) <- universals, nx >= nodeId u] ++ sofar
+                                = nub $! [unm | unm <- universals, nx >= nodeId (getSV unm)] ++ sofar
                                 | True
                                 = let oVars (LkUp _ a b)             = [a, b]
                                       oVars (IEEEFP (FP_Cast _ _ o)) = [o]
@@ -298,24 +304,25 @@ class ExtractIO m => MProvable m a where
                                       vars = case x `M.lookup` mappings of
                                                Nothing            -> []
                                                Just (SBVApp o ss) -> nub (oVars o ++ ss)
-                                  in foldr go sofar vars
+                                  in S.foldr' go sofar vars
                                 where nx = nodeId x
 
                    let needsUniversalOpt = let tag _  [] = Nothing
                                                tag nm xs = Just (nm, xs)
+                                               needsUniversal :: Objective (SV, SV) -> Maybe (String, [NamedSymVar])
                                                needsUniversal (Maximize          nm (x, _))   = tag nm (chaseUniversal x)
                                                needsUniversal (Minimize          nm (x, _))   = tag nm (chaseUniversal x)
                                                needsUniversal (AssertWithPenalty nm (x, _) _) = tag nm (chaseUniversal x)
                                            in mapMaybe needsUniversal objectives
 
                    unless (null universals || null needsUniversalOpt) $
-                          let len = maximum $ 0 : [length nm | (nm, _) <- needsUniversalOpt]
+                          let len = maximum $! 0 : [length nm | (nm, _) <- needsUniversalOpt]
                               pad n = n ++ replicate (len - length n) ' '
                           in error $ unlines $ [ ""
                                                , "*** Data.SBV: Problem needs optimization of metric in the scope of universally quantified variable(s):"
                                                , "***"
                                                ]
-                                           ++  [ "***          " ++  pad s ++ " [Depends on: " ++ intercalate ", " xs ++ "]"  | (s, xs) <- needsUniversalOpt ]
+                                           ++  [ "***          " ++  pad s ++ " [Depends on: " ++ intercalate ", " (getUserName' <$> xs) ++ "]"  | (s, xs) <- needsUniversalOpt ]
                                            ++  [ "***"
                                                , "*** Optimization is only meaningful with existentially quantified metrics."
                                                ]
@@ -417,9 +424,9 @@ class ExtractIO m => MProvable m a where
                                                      , "Unable to validate the produced model."
                                                      ]) (Just res)
 
-          check env = do let univs    = [n | ((ALL, (_, n)), _) <- env]
+          check env = do let univs    = [n | ((ALL, getUserName' -> n), _) <- env]
                              envShown = showModelDictionary True True cfg modelBinds
-                                where modelBinds = [(n, fake q s v) | ((q, (s, n)), v) <- env]
+                                where modelBinds = [(unpack n, fake q s v) | ((q, (NamedSymVar s n)), v) <- env]
                                       fake q s Nothing
                                         | q == ALL
                                         = RegularCV $ CV (kindOf s) $ CUserSort (Nothing, "<universally quantified>")

@@ -9,7 +9,8 @@
 -- Conversion of symbolic programs to SMTLib format, Using v2 of the standard
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE PatternGuards       #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
@@ -20,7 +21,7 @@ import Data.Bits  (bit)
 import Data.List  (intercalate, partition, nub, sort)
 import Data.Maybe (listToMaybe, fromMaybe, catMaybes)
 
-import qualified Data.Foldable as F (toList)
+import qualified Data.Foldable as F (toList,foldr')
 import qualified Data.Map.Strict      as M
 import qualified Data.IntMap.Strict   as IM
 import           Data.Set             (Set)
@@ -150,7 +151,7 @@ cvt ctx kindInfo isSat comments (inputs, trackerVars) skolemInps consts tbls arr
                     : concat [flattenConfig | any needsFlattening kindInfo, Just flattenConfig <- [supportsFlattenedModels solverCaps]]
 
         -- process all other settings we're given. If an option cannot be repeated, we only take the last one.
-        userSettings = map setSMTOption $ filter (not . isLogic) $ foldr comb [] $ solverSetOptions cfg
+        userSettings = map setSMTOption $ filter (not . isLogic) $ F.foldr' comb [] $ solverSetOptions cfg
            where -- Logic is already processed, so drop it:
                  isLogic SetLogic{} = True
                  isLogic _          = False
@@ -182,7 +183,7 @@ cvt ctx kindInfo isSat comments (inputs, trackerVars) skolemInps consts tbls arr
              ++ [ "; --- skolem constants ---" ]
              ++ [ "(declare-fun " ++ show s ++ " " ++ svFunType ss s ++ ")" ++ userName s | Right (s, ss) <- skolemInps]
              ++ [ "; --- optimization tracker variables ---" | not (null trackerVars) ]
-             ++ [ "(declare-fun " ++ show s ++ " " ++ svFunType [] s ++ ") ; tracks " ++ nm | (s, nm) <- trackerVars]
+             ++ [ "(declare-fun " ++ show s ++ " " ++ svFunType [] s ++ ") ; tracks " ++ nm | vars <- trackerVars, let s = getSV vars, let nm = getUserName' vars]
              ++ [ "; --- constant tables ---" ]
              ++ concatMap (uncurry (:) . constTable) constTables
              ++ [ "; --- skolemized tables ---" ]
@@ -322,7 +323,7 @@ cvt ctx kindInfo isSat comments (inputs, trackerVars) skolemInps consts tbls arr
         mkLet (s, SBVApp (Label m) [e]) = "(let ((" ++ show s ++ " " ++ cvtSV                skolemMap          e ++ ")) ; " ++ m
         mkLet (s, e)                    = "(let ((" ++ show s ++ " " ++ cvtExp solverCaps rm skolemMap tableMap e ++ "))"
 
-        userNameMap = M.fromList (map snd inputs)
+        userNameMap = M.fromList $ map (\namedSym -> (getSV namedSym, getUserName' namedSym)) $ map snd inputs
         userName s = case M.lookup s userNameMap of
                         Just u  | show s /= u -> " ; tracks user variable " ++ show u
                         _ -> ""
@@ -441,7 +442,7 @@ cvtInc inps newKs consts arrs tbls uis (SBVPgm asgnsSeq) cstrs cfg =
 
         newKinds = Set.toList newKs
 
-        declInp (s, _) = "(declare-fun " ++ show s ++ " () " ++ svType s ++ ")"
+        declInp (getSV -> s) = "(declare-fun " ++ show s ++ " () " ++ svType s ++ ")"
 
         (arrayConstants, arrayDelayeds, arraySetups) = unzip3 $ map (declArray cfg False consts skolemMap) arrs
 

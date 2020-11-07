@@ -35,8 +35,8 @@
 *** Solver   : Z3
 *** Exit code: ExitSuccess
 [VALIDATE] Validating the model. Assignment:
-[VALIDATE]       x =                -Infinity :: Float
 [VALIDATE]       y = <universally quantified> :: Float
+[VALIDATE]       x =                -Infinity :: Float
 [VALIDATE] NB. The following variable(s) are universally quantified: y
 [VALIDATE]     We will assume that they are essentially zero for the purposes of validation.
 [VALIDATE]     Note that this is a gross simplification of the model validation with universals!
@@ -45,5 +45,4 @@
 [VALIDATE] All outputs are satisfied. Validation complete.
 
 FINAL OUTPUT:
-Satisfiable. Model:
-  x = -Infinity :: Float
+Satisfiable

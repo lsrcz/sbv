@@ -17,6 +17,7 @@
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns        #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -42,31 +43,31 @@ lcase s e c = ite (L.null s) e (c (L.head s) (L.tail s))
 
 -- | Bounded fold from the right.
 bfoldr :: (SymVal a, SymVal b) => Int -> (SBV a -> SBV b -> SBV b) -> SBV b -> SList a -> SBV b
-bfoldr cnt f b = go (cnt `max` 0)
-  where go 0 _ = b
-        go i s = lcase s b (\h t -> h `f` go (i-1) t)
+bfoldr !cnt f !b = go (cnt `max` 0)
+  where go 0 _   = b
+        go !i !s = lcase s b (\h t -> h `f` go (i-1) t)
 
 -- | Bounded monadic fold from the right.
 bfoldrM :: forall a b m. (SymVal a, SymVal b, Monad m, Mergeable (m (SBV b)))
         => Int -> (SBV a -> SBV b -> m (SBV b)) -> SBV b -> SList a -> m (SBV b)
-bfoldrM cnt f b = go (cnt `max` 0)
+bfoldrM !cnt f !b = go (cnt `max` 0)
   where go :: Int -> SList a -> m (SBV b)
-        go 0 _ = return b
-        go i s = lcase s (return b) (\h t -> f h =<< go (i-1) t)
+        go 0 _   = return b
+        go !i !s = lcase s (return b) (\h t -> f h =<< go (i-1) t)
 
 -- | Bounded fold from the left.
 bfoldl :: (SymVal a, SymVal b) => Int -> (SBV b -> SBV a -> SBV b) -> SBV b -> SList a -> SBV b
-bfoldl cnt f = go (cnt `max` 0)
-  where go 0 b _ = b
-        go i b s = lcase s b (\h t -> go (i-1) (b `f` h) t)
+bfoldl !cnt f = go (cnt `max` 0)
+  where go 0 !b  _  = b
+        go !i !b !s = lcase s b (\h t -> go (i-1) (b `f` h) t)
 
 -- | Bounded monadic fold from the left.
 bfoldlM :: forall a b m. (SymVal a, SymVal b, Monad m, Mergeable (m (SBV b)))
         => Int -> (SBV b -> SBV a -> m (SBV b)) -> SBV b -> SList a -> m (SBV b)
 bfoldlM cnt f = go (cnt `max` 0)
   where go :: Int -> SBV b -> SList a -> m (SBV b)
-        go 0 b _ = return b
-        go i b s = lcase s (return b) (\h t -> do { fbh <- f b h; go (i-1) fbh t })
+        go 0 !b _   = return b
+        go !i !b !s = lcase s (return b) (\h t -> do { fbh <- f b h; go (i-1) fbh t })
 
 -- | Bounded sum.
 bsum :: (SymVal a, Num a, Ord a) => Int -> SList a -> SBV a
@@ -115,9 +116,9 @@ bminimum i l = bfoldl (i-1) smin (L.head l) (L.tail l)
 
 -- | Bounded zipWith
 bzipWith :: (SymVal a, SymVal b, SymVal c) => Int -> (SBV a -> SBV b -> SBV c) -> SList a -> SList b -> SList c
-bzipWith cnt f = go (cnt `max` 0)
-   where go 0 _  _  = []
-         go i xs ys = ite (L.null xs .|| L.null ys)
+bzipWith !cnt f = go (cnt `max` 0)
+   where go 0  _  _  = []
+         go !i xs ys = ite (L.null xs .|| L.null ys)
                           []
                           (f (L.head xs) (L.head ys) .: go (i-1) (L.tail xs) (L.tail ys))
 
@@ -132,8 +133,8 @@ breverse cnt = bfoldr cnt (\a b -> b .++ L.singleton a) []
 -- | Bounded paramorphism (not exported).
 bpara :: (SymVal a, SymVal b) => Int -> (SBV a -> SBV [a] -> SBV b -> SBV b) -> SBV b -> SList a -> SBV b
 bpara cnt f b = go (cnt `max` 0)
-  where go 0 _ = b
-        go i s = lcase s b (\h t -> f h t (go (i-1) t))
+  where go 0 _  = b
+        go !i s = lcase s b (\h t -> f h t (go (i-1) t))
 
 -- | Insert an element into a sorted list (not exported).
 binsert :: (Ord a, SymVal a) => Int -> SBV a -> SList a -> SList a
