@@ -42,7 +42,7 @@ import           System.Random
 import           Data.Char (isSpace)
 import           System.FilePath ((</>), (<.>))
 import           System.FilePath.Posix (takeBaseName)
-import           System.IO (appendFile, readFile)
+-- import           System.IO (appendFile, readFile)
 import           System.Process (callCommand)
 import           Data.Ord (comparing)
 import           Data.Time.Clock

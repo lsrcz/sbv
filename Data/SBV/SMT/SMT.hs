@@ -11,9 +11,12 @@
 
 {-# LANGUAGE DefaultSignatures          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -55,7 +58,9 @@ import Data.Time          (getZonedTime, defaultTimeLocale, formatTime, diffUTCT
 import System.Directory   (findExecutable)
 import System.Environment (getEnv)
 import System.Exit        (ExitCode(..))
-import System.IO          (hClose, hFlush, hPutStrLn, hGetContents, hGetLine)
+import System.IO          (hClose, hFlush)
+import Data.Text.IO       (hPutStrLn, hGetContents, hGetLine)
+import qualified Data.Text as T
 import System.Process     (runInteractiveProcess, waitForProcess, terminateProcess)
 
 import qualified Data.Map.Strict as M
@@ -445,8 +450,8 @@ instance Modelable SMTResult where
   modelExists _               = False
 
   getModelDictionary Unsatisfiable{}     = M.empty
-  getModelDictionary (Satisfiable _   m) = M.fromList (modelAssocs m)
-  getModelDictionary (DeltaSat    _ _ m) = M.fromList (modelAssocs m)
+  getModelDictionary (Satisfiable _   m) = modelAssocs m
+  getModelDictionary (DeltaSat    _ _ m) = modelAssocs m
   getModelDictionary SatExtField{}       = M.empty
   getModelDictionary Unknown{}           = M.empty
   getModelDictionary ProofError{}        = M.empty
@@ -467,7 +472,7 @@ instance Modelable SMTResult where
 
 -- | Extract a model out, will throw error if parsing is unsuccessful
 parseModelOut :: SatModel a => SMTModel -> a
-parseModelOut m = case parseCVs [c | (_, c) <- modelAssocs m] of
+parseModelOut m = case parseCVs (M.elems $ modelAssocs m) of
                    Just (x, []) -> x
                    Just (_, ys) -> error $ "SBV.parseModelOut: Partially constructed model; remaining elements: " ++ show ys
                    Nothing      -> error $ "SBV.parseModelOut: Cannot construct a model from: " ++ show m
@@ -487,20 +492,20 @@ displayModels arrange disp AllSatResult{allSatResults = ms} = do
 -- | Show an SMTResult; generic version
 showSMTResult :: String -> String -> String -> String -> (Maybe String -> String) -> String -> SMTResult -> String
 showSMTResult unsatMsg unkMsg satMsg satMsgModel dSatMsgModel satExtMsg result = case result of
-  Unsatisfiable _ uc                 -> unsatMsg ++ showUnsatCore uc
-  Satisfiable _ (SMTModel _ _ [] []) -> satMsg
-  Satisfiable _   m                  -> satMsgModel    ++ showModel cfg m
-  DeltaSat    _ p m                  -> dSatMsgModel p ++ showModel cfg m
-  SatExtField _ (SMTModel b _ _ _)   -> satExtMsg   ++ showModelDictionary True False cfg b
-  Unknown     _ r                    -> unkMsg ++ ".\n" ++ "  Reason: " `alignPlain` show r
-  ProofError  _ [] Nothing           -> "*** An error occurred. No additional information available. Try running in verbose mode."
-  ProofError  _ ls Nothing           -> "*** An error occurred.\n" ++ intercalate "\n" (map ("***  " ++) ls)
-  ProofError  _ ls (Just r)          -> intercalate "\n" $  [ "*** " ++ l | l <- ls]
-                                                         ++ [ "***"
-                                                            , "*** Alleged model:"
-                                                            , "***"
-                                                            ]
-                                                         ++ ["*** "  ++ l | l <- lines (showSMTResult unsatMsg unkMsg satMsg satMsgModel dSatMsgModel satExtMsg r)]
+  Unsatisfiable _ uc                               -> unsatMsg ++ showUnsatCore uc
+  Satisfiable _ (SMTModel _ _ (M.null -> True) []) -> satMsg
+  Satisfiable _   m                                -> satMsgModel    ++ showModel cfg m
+  DeltaSat    _ p m                                -> dSatMsgModel p ++ showModel cfg m
+  SatExtField _ (SMTModel b _ _ _)                 -> satExtMsg   ++ showModelDictionary True False cfg b
+  Unknown     _ r                                  -> unkMsg ++ ".\n" ++ "  Reason: " `alignPlain` show r
+  ProofError  _ [] Nothing                         -> "*** An error occurred. No additional information available. Try running in verbose mode."
+  ProofError  _ ls Nothing                         -> "*** An error occurred.\n" ++ intercalate "\n" (map ("***  " ++) ls)
+  ProofError  _ ls (Just r)                        -> intercalate "\n" $  [ "*** " ++ l | l <- ls]
+                                                                       ++ [ "***"
+                                                                          , "*** Alleged model:"
+                                                                          , "***"
+                                                                          ]
+                                                                       ++ ["*** "  ++ l | l <- lines (showSMTResult unsatMsg unkMsg satMsg satMsgModel dSatMsgModel satExtMsg r)]
 
  where cfg = resultConfig result
        showUnsatCore Nothing   = ""
@@ -514,7 +519,7 @@ showModel cfg model
    = nonUIFuncs
    | True
    = sep nonUIFuncs ++ intercalate "\n\n" (map (showModelUI cfg) uiFuncs)
-   where nonUIFuncs = showModelDictionary (null uiFuncs) False cfg [(n, RegularCV c) | (n, c) <- modelAssocs model]
+   where nonUIFuncs = showModelDictionary (null uiFuncs) False cfg [(n, RegularCV c) | (n, c) <- M.toList $ modelAssocs model]
          uiFuncs    = modelUIFuns model
          sep ""     = ""
          sep x      = x ++ "\n\n"
@@ -666,7 +671,7 @@ runSolver cfg ctx execPath opts pgm continuation
                 (inh, outh, errh, pid) <- runInteractiveProcess execPath opts Nothing Nothing
 
                 let send :: Maybe Int -> String -> IO ()
-                    send mbTimeOut command = do hPutStrLn inh (clean command)
+                    send mbTimeOut command = do hPutStrLn inh (T.pack $! clean command)
                                                 hFlush inh
                                                 recordTranscript (transcript cfg) $ Left (command, mbTimeOut)
 
@@ -701,17 +706,19 @@ runSolver cfg ctx execPath opts pgm continuation
                                              -- Like hGetLine, except it keeps getting lines if inside a string.
                                              getFullLine :: IO String
                                              getFullLine = intercalate "\n" . reverse <$> collect False []
-                                                where collect inString sofar = do ln <- hGetLine h
+                                                where collect inString !sofar = do !ln' <- hGetLine h
 
-                                                                                  let walk inside []           = inside
-                                                                                      walk inside ('"':cs)     = walk (not inside) cs
-                                                                                      walk inside (_:cs)       = walk inside       cs
+                                                                                   let walk inside []           = inside
+                                                                                       walk inside ('"':cs)     = walk (not inside) cs
+                                                                                       walk inside (_:cs)       = walk inside       cs
 
-                                                                                      stillInside = walk inString ln
+                                                                                       ln = T.unpack ln'
 
-                                                                                      sofar' = ln : sofar
+                                                                                       stillInside = walk inString ln
 
-                                                                                  if stillInside
+                                                                                       !sofar' = ln : sofar
+
+                                                                                   if stillInside
                                                                                      then collect True sofar'
                                                                                      else return sofar'
 
@@ -723,10 +730,10 @@ runSolver cfg ctx execPath opts pgm continuation
                                                               Nothing -> return $ SolverTimeout $ timeOutMsg t
 
 
-                            go isFirst i sofar = do
+                            go isFirst i !sofar = do
                                             errln <- safeGetLine isFirst outh `C.catch` (\(e :: C.SomeException) -> handleAsync e (return (SolverException (show e))))
                                             case errln of
-                                              SolverRegular ln -> let need  = i + parenDeficit ln
+                                              SolverRegular ln -> let !need  = i + parenDeficit ln
                                                                       -- make sure we get *something*
                                                                       empty = case dropWhile isSpace ln of
                                                                                 []      -> True
@@ -776,25 +783,25 @@ runSolver cfg ctx execPath opts pgm continuation
 
                     terminateSolver = do hClose inh
                                          outMVar <- newEmptyMVar
-                                         out <- hGetContents outh `C.catch`  (\(e :: C.SomeException) -> handleAsync e (return (show e)))
-                                         _ <- forkIO $ C.evaluate (length out) >> putMVar outMVar ()
-                                         err <- hGetContents errh `C.catch`  (\(e :: C.SomeException) -> handleAsync e (return (show e)))
-                                         _ <- forkIO $ C.evaluate (length err) >> putMVar outMVar ()
+                                         !out <- hGetContents outh `C.catch`  (\(e :: C.SomeException) -> handleAsync e (return (T.pack $! show e)))
+                                         _ <- forkIO $! C.evaluate (T.length out) >> putMVar outMVar ()
+                                         !err <- hGetContents errh `C.catch`  (\(e :: C.SomeException) -> handleAsync e (return (T.pack $! show e)))
+                                         _ <- forkIO $! C.evaluate (T.length err) >> putMVar outMVar ()
                                          takeMVar outMVar
                                          takeMVar outMVar
                                          hClose outh `C.catch`  (\(e :: C.SomeException) -> handleAsync e (return ()))
                                          hClose errh `C.catch`  (\(e :: C.SomeException) -> handleAsync e (return ()))
-                                         ex <- waitForProcess pid `C.catch` (\(e :: C.SomeException) -> handleAsync e (return (ExitFailure (-999))))
+                                         !ex <- waitForProcess pid `C.catch` (\(e :: C.SomeException) -> handleAsync e (return (ExitFailure (-999))))
                                          return (out, err, ex)
 
                     cleanUp
-                      = do (out, err, ex) <- terminateSolver
+                      = do (!out, !err, !ex) <- terminateSolver
 
                            msg $   [ "Solver   : " ++ nm
                                    , "Exit code: " ++ show ex
                                    ]
-                                ++ [ "Std-out  : " ++ intercalate "\n           " (lines out) | not (null out)]
-                                ++ [ "Std-err  : " ++ intercalate "\n           " (lines err) | not (null err)]
+                                ++ [ "Std-out  : " ++ intercalate "\n           " (lines (T.unpack out)) | not (T.null out)]
+                                ++ [ "Std-err  : " ++ intercalate "\n           " (lines (T.unpack err)) | not (T.null err)]
 
                            finalizeTranscript (transcript cfg) ex
                            recordEndTime cfg ctx
@@ -807,8 +814,8 @@ runSolver cfg ctx execPath opts pgm continuation
                                                                            , sbvExceptionSent        = Nothing
                                                                            , sbvExceptionExpected    = Nothing
                                                                            , sbvExceptionReceived    = Nothing
-                                                                           , sbvExceptionStdOut      = Just out
-                                                                           , sbvExceptionStdErr      = Just err
+                                                                           , sbvExceptionStdOut      = Just (T.unpack out)
+                                                                           , sbvExceptionStdErr      = Just (T.unpack err)
                                                                            , sbvExceptionExitCode    = Just ex
                                                                            , sbvExceptionConfig      = cfg { solver = (solver cfg) { executable = execPath } }
                                                                            , sbvExceptionReason      = Nothing
@@ -852,15 +859,15 @@ runSolver cfg ctx execPath opts pgm continuation
                                                                            Right xs -> xs
 
                                                             (outOrig, errOrig, ex) <- terminateSolver
-                                                            let out = intercalate "\n" . lines $ outOrig
-                                                                err = intercalate "\n" . lines $ errOrig
+                                                            let out = T.intercalate "\n" . T.lines $ outOrig
+                                                                err = T.intercalate "\n" . T.lines $ errOrig
 
                                                                 exc = SBVException { sbvExceptionDescription = "Unexpected non-success response from " ++ nm
                                                                                    , sbvExceptionSent        = Just l
                                                                                    , sbvExceptionExpected    = Just "success"
                                                                                    , sbvExceptionReceived    = Just $ r ++ "\n" ++ extras
-                                                                                   , sbvExceptionStdOut      = Just out
-                                                                                   , sbvExceptionStdErr      = Just err
+                                                                                   , sbvExceptionStdOut      = Just (T.unpack out)
+                                                                                   , sbvExceptionStdErr      = Just (T.unpack err)
                                                                                    , sbvExceptionExitCode    = Just ex
                                                                                    , sbvExceptionConfig      = cfg { solver = (solver cfg) {executable = execPath } }
                                                                                    , sbvExceptionReason      = Just reason

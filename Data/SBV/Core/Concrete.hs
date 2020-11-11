@@ -10,6 +10,7 @@
 -----------------------------------------------------------------------------
 
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE TypeApplications    #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
@@ -125,18 +126,18 @@ instance Eq CVal where
 
 -- | Ord instance for VWVal. Same comments as the 'Eq' instance why this cannot be derived.
 instance Ord CVal where
-  CAlgReal  a `compare` CAlgReal b  = a        `algRealStructuralCompare` b
-  CInteger  a `compare` CInteger b  = a        `compare`                  b
-  CFloat    a `compare` CFloat b    = a        `fpCompareObjectH`         b
-  CDouble   a `compare` CDouble b   = a        `fpCompareObjectH`         b
-  CChar     a `compare` CChar b     = a        `compare`                  b
-  CString   a `compare` CString b   = a        `compare`                  b
-  CList     a `compare` CList   b   = a        `compare`                  b
-  CSet      a `compare` CSet    b   = a        `compareRCSet`             b
-  CUserSort a `compare` CUserSort b = a        `compare`                  b
-  CTuple    a `compare` CTuple    b = a        `compare`                  b
-  CMaybe    a `compare` CMaybe    b = a        `compare`                  b
-  CEither   a `compare` CEither   b = a        `compare`                  b
+  (CAlgReal  !a) `compare` (CAlgReal  !b) = a        `algRealStructuralCompare` b
+  (CInteger  !a) `compare` (CInteger  !b) = a        `compare`                  b
+  (CFloat    !a) `compare` (CFloat    !b) = a        `fpCompareObjectH`         b
+  (CDouble   !a) `compare` (CDouble   !b) = a        `fpCompareObjectH`         b
+  (CChar     !a) `compare` (CChar     !b) = a        `compare`                  b
+  (CString   !a) `compare` (CString   !b) = a        `compare`                  b
+  (CList     !a) `compare` (CList     !b) = a        `compare`                  b
+  (CSet      !a) `compare` (CSet      !b) = a        `compareRCSet`             b
+  (CUserSort !a) `compare` (CUserSort !b) = a        `compare`                  b
+  (CTuple    !a) `compare` (CTuple    !b) = a        `compare`                  b
+  (CMaybe    !a) `compare` (CMaybe    !b) = a        `compare`                  b
+  (CEither   !a) `compare` (CEither   !b) = a        `compare`                  b
   a           `compare` b           = let ra = cvRank a
                                           rb = cvRank b
                                       in if ra == rb
@@ -254,7 +255,7 @@ normCV c@(CV (KBounded signed sz) (CInteger v)) = c { cvVal = CInteger norm }
                            Below is equivalent, and hopefully faster!
                         -}
                         v .&. (((1 :: Integer) `shiftL` sz) - 1)
-normCV c@(CV KBool (CInteger v)) = c { cvVal = CInteger (v .&. 1) }
+normCV c@(CV KBool (CInteger v)) = c { cvVal = CInteger (v .&. 1)}
 normCV c                         = c
 {-# INLINE normCV #-}
 
@@ -357,13 +358,13 @@ mapCV2 :: (AlgReal             -> AlgReal             -> AlgReal)
        -> CV
        -> CV
 mapCV2 r i f d c s u x y = case (cvSameType x y, cvVal x, cvVal y) of
-                            (True, CAlgReal  a, CAlgReal  b) -> normCV $ CV (kindOf x) (CAlgReal  (r a b))
-                            (True, CInteger  a, CInteger  b) -> normCV $ CV (kindOf x) (CInteger  (i a b))
-                            (True, CFloat    a, CFloat    b) -> normCV $ CV (kindOf x) (CFloat    (f a b))
-                            (True, CDouble   a, CDouble   b) -> normCV $ CV (kindOf x) (CDouble   (d a b))
-                            (True, CChar     a, CChar     b) -> normCV $ CV (kindOf x) (CChar     (c a b))
-                            (True, CString   a, CString   b) -> normCV $ CV (kindOf x) (CString   (s a b))
-                            (True, CUserSort a, CUserSort b) -> normCV $ CV (kindOf x) (CUserSort (u a b))
+                            (True, CAlgReal  a, CAlgReal  b) -> normCV $! CV (kindOf x) (CAlgReal  (r a b))
+                            (True, CInteger  a, CInteger  b) -> normCV $! CV (kindOf x) (CInteger  (i a b))
+                            (True, CFloat    a, CFloat    b) -> normCV $! CV (kindOf x) (CFloat    (f a b))
+                            (True, CDouble   a, CDouble   b) -> normCV $! CV (kindOf x) (CDouble   (d a b))
+                            (True, CChar     a, CChar     b) -> normCV $! CV (kindOf x) (CChar     (c a b))
+                            (True, CString   a, CString   b) -> normCV $! CV (kindOf x) (CString   (s a b))
+                            (True, CUserSort a, CUserSort b) -> normCV $! CV (kindOf x) (CUserSort (u a b))
                             (True, CList{},     CList{})     -> error "Data.SBV.mapCV2: Unexpected call through mapCV2 with lists!"
                             (True, CTuple{},    CTuple{})    -> error "Data.SBV.mapCV2: Unexpected call through mapCV2 with tuples!"
                             (True, CMaybe{},    CMaybe{})    -> error "Data.SBV.mapCV2: Unexpected call through mapCV2 with maybes!"

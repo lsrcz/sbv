@@ -13,7 +13,9 @@
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE ViewPatterns        #-}
+{-# LANGUAGE TupleSections #-}
 
 {-# OPTIONS_GHC -Wall -Werror -fno-warn-orphans #-}
 
@@ -41,14 +43,16 @@ import qualified Data.IntMap.Strict as IM
 
 
 import Data.Char     (toLower)
-import Data.List     (intercalate, nubBy, sortBy, sortOn)
+import Data.Text     (unpack)
+import Data.List     (intercalate, nubBy)
 import Data.Maybe    (listToMaybe, catMaybes)
 import Data.Function (on)
+import Data.Bifunctor (second)
 
 import Data.SBV.Core.Data
 
 import Data.SBV.Core.Symbolic   ( MonadQuery(..), State(..)
-                                , incrementInternalCounter, validationRequested
+                                , incrementInternalCounter, validationRequested , uInpsToList
                                 )
 
 import Data.SBV.Utils.SExpr
@@ -310,31 +314,38 @@ getModelAtIndex mbi = do
       m@Concrete{}        -> error $ "SBV.getModel: Model is not available in mode: " ++ show m
       SMTMode _ _ isSAT _ -> do
           cfg   <- getConfig
-          qinps <- getQuantifiedInputs
+          qinps <- IM.elems <$> getQuantifiedInputs
           uis   <- getUIs
 
            -- for "sat", display the prefix existentials. for "proof", display the prefix universals
-          let allModelInputs = if isSAT then takeWhile ((/= ALL) . fst) qinps
-                                        else takeWhile ((== ALL) . fst) qinps
-
+          let
+            allModelInputs :: M.Map Quantifier [NamedSymVar]
+            allModelInputs = if isSAT
+                             then M.fromListWith (<>) . fmap (second pure) $ takeWhile ((/= ALL) . fst) qinps
+                             else M.fromListWith (<>) . fmap (second pure) $ takeWhile ((== ALL) . fst) qinps
               -- Add on observables only if we're not in a quantified context
-              grabObservables = length allModelInputs == length qinps -- i.e., we didn't drop anything
+            grabObservables = length (M.elems allModelInputs) == length qinps -- i.e., we didn't drop anything
 
           obsvs <- if grabObservables
-                      then getObservables
-                      else do queryDebug ["*** In a quantified context, obvservables will not be printed."]
-                              return []
+                   then getObservables
+                   else queryDebug ["*** In a quantified context, obvservables will not be printed."] >> return []
 
-          let sortByNodeId :: [(SV, (String, CV))] -> [(String, CV)]
-              sortByNodeId = map snd . sortBy (compare `on` (\(SV _ nid, _) -> nid))
+          let
+            grab :: (MonadIO m, MonadQuery m) => NamedSymVar -> m (M.Map SV (String, CV))
+            grab (NamedSymVar sv nm) = wrap <$> theCV
+                 where
+                   theCV :: (MonadIO m, MonadQuery m) => m CV
+                   !theCV = getValueCV mbi sv
 
-              grab (sv, nm) = wrap <$> getValueCV mbi sv
-                 where wrap c = (sv, (nm, c))
+                   wrap :: CV -> M.Map SV (String, CV)
+                   wrap !c = M.singleton sv (name, c)
+                     where !name = unpack nm
 
-          inputAssocs <- mapM (grab . snd) allModelInputs
+          !inputAssocs <- mconcat . mconcat . M.elems <$> mapM (mapM grab) allModelInputs
 
-          let assocs =  sortOn fst obsvs
-                     ++ sortByNodeId [p | p@(_, (nm, _)) <- inputAssocs, not (isNonModelVar cfg nm)]
+          let --TODO this is a map merge through a list, just do the map merge
+              !assocs    = M.fromList $! obsvs <> M.elems inputAssocs
+
 
           -- collect UIs, and UI functions if requested
           let uiFuns = [ui | ui@(nm, SBVType as) <- uis, length as >  1, satTrackUFs cfg, not (isNonModelVar cfg nm)] -- functions have at least two things in their type!
@@ -349,9 +360,9 @@ getModelAtIndex mbi = do
                   Just cmds -> mapM_ (send True) cmds
 
           bindings <- let get i@(ALL, _)      = return (i, Nothing)
-                          get i@(EX, (sv, _)) = case sv `lookup` inputAssocs of
+                          get i@(EX, getSV -> sv) = case sv `M.lookup` inputAssocs of
                                                   Just (_, cv) -> return (i, Just cv)
-                                                  Nothing      -> do cv <- getValueCV mbi sv
+                                                  Nothing      -> do !cv <- getValueCV mbi sv
                                                                      return (i, Just cv)
 
                           flipQ i@(q, sv) = case (isSAT, q) of
@@ -369,7 +380,7 @@ getModelAtIndex mbi = do
 
           return SMTModel { modelObjectives = []
                           , modelBindings   = bindings
-                          , modelAssocs     = uiVals ++ assocs
+                          , modelAssocs     = M.fromList uiVals <> assocs
                           , modelUIFuns     = uiFunVals
                           }
 
@@ -382,7 +393,7 @@ getObjectiveValues = do let cmd = "(get-objectives)"
 
                         r <- ask cmd
 
-                        inputs <- map snd <$> getQuantifiedInputs
+                        inputs <- fmap snd . uInpsToList <$> getQuantifiedInputs
 
                         parse r bad $ \case EApp (ECon "objectives" : es) -> catMaybes <$> mapM (getObjValue (bad r) inputs) es
                                             _                             -> bad r Nothing
@@ -395,9 +406,9 @@ getObjectiveValues = do let cmd = "(get-objectives)"
                   EApp [ECon nm, v] -> locate nm v               -- Regular case
                   _                 -> dontUnderstand (show expr)
 
-          where locate nm v = case listToMaybe [p | p@(sv, _) <- inputs, show sv == nm] of
+          where locate nm v = case listToMaybe [p | p@(NamedSymVar sv _) <- inputs, show sv == nm] of
                                 Nothing               -> return Nothing -- Happens when the soft assertion has a group-id that's not one of the input names
-                                Just (sv, actualName) -> grab sv v >>= \val -> return $ Just (actualName, val)
+                                Just (NamedSymVar sv (unpack -> actualName)) -> grab sv v >>= \val -> return $ Just (actualName, val)
 
                 dontUnderstand s = bailOut $ Just [ "Unable to understand solver output."
                                                   , "While trying to process: " ++ s
@@ -763,7 +774,7 @@ SBV a |-> v = case literal v of
 mkSMTResult :: (MonadIO m, MonadQuery m) => [Assignment] -> m SMTResult
 mkSMTResult asgns = do
              QueryState{queryConfig} <- getQueryState
-             inps <- getQuantifiedInputs
+             inps <- uInpsToList <$> getQuantifiedInputs
 
              let grabValues st = do let extract (Assign s n) = sbvToSV st (SBV s) >>= \sv -> return (sv, n)
 
@@ -776,8 +787,8 @@ mkSMTResult asgns = do
                                     let userSS = map fst modelAssignment
 
                                         missing, extra, dup :: [String]
-                                        missing = [n | (EX, (s, n)) <- inps, s `notElem` userSS]
-                                        extra   = [show s | s <- userSS, s `notElem` map (fst . snd) inps]
+                                        missing = [getUserName' nm | (EX, nm) <- inps, getSV nm `notElem` userSS]
+                                        extra   = [show s | s <- userSS, s `notElem` map (getSV . snd) inps]
                                         dup     = let walk []     = []
                                                       walk (n:ns)
                                                         | n `elem` ns = show n : walk (filter (/= n) ns)
@@ -808,7 +819,7 @@ mkSMTResult asgns = do
                                                             , "*** Data.SBV: Check your query result construction!"
                                                             ]
 
-                                    let findName s = case [nm | (_, (i, nm)) <- inps, s == i] of
+                                    let findName s = case [unpack nm | (_, NamedSymVar i nm) <- inps, s == i] of
                                                         [nm] -> nm
                                                         []   -> error "*** Data.SBV: Impossible happened: Cannot find " ++ show s ++ " in the input list"
                                                         nms  -> error $ unlines [ ""
@@ -822,7 +833,7 @@ mkSMTResult asgns = do
 
              let m = SMTModel { modelObjectives = []
                               , modelBindings   = Nothing
-                              , modelAssocs     = assocs
+                              , modelAssocs     = M.fromList assocs
                               , modelUIFuns     = []
                               }
 

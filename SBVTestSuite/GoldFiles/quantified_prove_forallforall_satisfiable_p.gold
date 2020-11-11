@@ -25,9 +25,10 @@
 [GOOD] (assert (not s4))
 [SEND] (check-sat)
 [RECV] sat
-[SEND] (get-value (s0))
-[RECV] ((s0 #xff))
+*** In a quantified context, obvservables will not be printed.
 [SEND] (get-value (s1))
 [RECV] ((s1 #xff))
+[SEND] (get-value (s0))
+[RECV] ((s0 #xff))
 *** Solver   : Z3
 *** Exit code: ExitSuccess

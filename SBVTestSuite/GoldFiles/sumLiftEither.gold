@@ -35,11 +35,12 @@
 [GOOD] (assert s7)
 [SEND] (check-sat)
 [RECV] sat
-[SEND] (get-value (s0))
-[RECV] ((s0 0))
+*** In a quantified context, obvservables will not be printed.
 [SEND] (get-value (s1))
 [RECV] ((s1 #x00))
+[SEND] (get-value (s0))
+[RECV] ((s0 0))
 
-MODEL: SMTModel {modelObjectives = [], modelBindings = Nothing, modelAssocs = [("i",0 :: Integer),("c",'\NUL' :: Char)], modelUIFuns = []}
+MODEL: SMTModel {modelObjectives = [], modelBindings = Nothing, modelAssocs = fromList [("c",'\NUL' :: Char),("i",0 :: Integer)], modelUIFuns = []}
 DONE.*** Solver   : Z3
 *** Exit code: ExitSuccess

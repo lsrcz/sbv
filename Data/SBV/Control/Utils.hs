@@ -16,6 +16,7 @@
 {-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE NamedFieldPuns         #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE ViewPatterns           #-}
 {-# LANGUAGE TupleSections          #-}
 {-# LANGUAGE TypeApplications       #-}
 
@@ -50,6 +51,7 @@ import Data.Proxy
 import qualified Data.Map.Strict    as Map
 import qualified Data.IntMap.Strict as IMap
 import qualified Data.Sequence      as S
+import qualified Data.Foldable as F (toList)
 
 import Control.Monad            (join, unless, zipWithM, when, replicateM)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
@@ -61,6 +63,7 @@ import Data.Maybe (isNothing, isJust)
 import Data.IORef (readIORef, writeIORef)
 
 import Data.Time (getZonedTime)
+import Data.Text (unpack)
 
 import Data.SBV.Core.Data     ( SV(..), trueSV, falseSV, CV(..), trueCV, falseCV, SBV, sbvToSV, kindOf, Kind(..)
                               , HasKind(..), mkConstCV, CVal(..), SMTResult(..)
@@ -78,6 +81,8 @@ import Data.SBV.Core.Symbolic ( IncState(..), withNewIncState, State(..), svToSV
                               , registerLabel, svMkSymVar, validationRequested
                               , isSafetyCheckingIStage, isSetupIStage, isRunIStage, IStage(..), QueryT(..)
                               , extractSymbolicSimulationState, MonadSymbolic(..), newUninterpreted
+                              , NamedSymVar(..),getSV,getUserName', getInputs
+                              , userInps, uInpsToList, inpsFromListWith, UserInps
                               )
 
 import Data.SBV.Core.AlgReals   (mergeAlgReals, AlgReal(..), RealPoint(..))
@@ -154,6 +159,7 @@ getSBVAssertions = do State{rAsserts} <- queryState
 -- | Generalization of 'Data.SBV.Control.io'
 io :: MonadIO m => IO a -> m a
 io = liftIO
+{-# INLINE io #-}
 
 -- | Sync-up the external solver with new context we have generated
 syncUpSolver :: (MonadIO m, MonadQuery m) => IncState -> m ()
@@ -199,10 +205,10 @@ modifyQueryState f = do state <- queryState
 
 -- | Generalization of 'Data.SBV.Control.inNewContext'
 inNewContext :: (MonadIO m, MonadQuery m) => (State -> IO a) -> m a
-inNewContext act = do st <- queryState
-                      (is, r) <- io $ withNewIncState st act
-                      syncUpSolver is
-                      return r
+inNewContext !act = do !st <- queryState
+                       (!is, !r) <- io $! withNewIncState st act
+                       syncUpSolver is
+                       return r
 
 -- | Generic 'Queriable' instance for 'SymVal' values
 instance (MonadIO m, SymVal a) => Queriable m (SBV a) a where
@@ -245,15 +251,15 @@ queryDebug msgs = do QueryState{queryConfig} <- getQueryState
 
 -- | Generalization of 'Data.SBV.Control.ask'
 ask :: (MonadIO m, MonadQuery m) => String -> m String
-ask s = do QueryState{queryAsk, queryTimeOutValue} <- getQueryState
+ask !s = do QueryState{queryAsk, queryTimeOutValue} <- getQueryState
 
-           case queryTimeOutValue of
-             Nothing -> queryDebug ["[SEND] " `alignPlain` s]
-             Just i  -> queryDebug ["[SEND, TimeOut: " ++ showTimeoutValue i ++ "] " `alignPlain` s]
-           r <- io $ queryAsk queryTimeOutValue s
-           queryDebug ["[RECV] " `alignPlain` r]
+            case queryTimeOutValue of
+              Nothing -> queryDebug ["[SEND] " `alignPlain` s]
+              Just i  -> queryDebug ["[SEND, TimeOut: " ++ showTimeoutValue i ++ "] " `alignPlain` s]
+            r <- io $ queryAsk queryTimeOutValue s
+            queryDebug ["[RECV] " `alignPlain` r]
 
-           return r
+            return r
 
 -- | Send a string to the solver, and return the response. Except, if the response
 -- is one of the "ignore" ones, keep querying.
@@ -335,9 +341,9 @@ retrieveResponse userTag mbTo = do
 
 -- | Generalization of 'Data.SBV.Control.getValue'
 getValue :: (MonadIO m, MonadQuery m, SymVal a) => SBV a -> m a
-getValue s = do sv <- inNewContext (`sbvToSV` s)
-                cv <- getValueCV Nothing sv
-                return $ fromCV cv
+getValue s = do !sv <- inNewContext (`sbvToSV` s)
+                !cv <- getValueCV Nothing sv
+                return $! fromCV cv
 
 -- | A class which allows for sexpr-conversion to functions
 class (HasKind r, SatModel r) => SMTFunction fun a r | fun -> a r where
@@ -919,7 +925,7 @@ recoverKindedValue k e = case k of
 
 -- | Generalization of 'Data.SBV.Control.getValueCV'
 getValueCV :: (MonadIO m, MonadQuery m) => Maybe Int -> SV -> m CV
-getValueCV mbi s
+getValueCV !mbi !s
   | kindOf s /= KReal
   = getValueCVHelper mbi s
   | True
@@ -927,10 +933,10 @@ getValueCV mbi s
        if not (supportsApproxReals (capabilities (solver cfg)))
           then getValueCVHelper mbi s
           else do send True "(set-option :pp.decimal false)"
-                  rep1 <- getValueCVHelper mbi s
+                  !rep1 <- getValueCVHelper mbi s
                   send True   "(set-option :pp.decimal true)"
                   send True $ "(set-option :pp.decimal_precision " ++ show (printRealPrec cfg) ++ ")"
-                  rep2 <- getValueCVHelper mbi s
+                  !rep2 <- getValueCVHelper mbi s
 
                   let bad = unexpected "getValueCV" "get-value" ("a real-valued binding for " ++ show s) Nothing (show (rep1, rep2)) Nothing
 
@@ -1034,18 +1040,16 @@ checkSatUsing cmd = do let bad = unexpected "checkSat" cmd "one of sat/unsat/unk
                                            ECon "delta-sat" -> DSat <$> getPrecision
                                            _                -> bad r Nothing
 
--- | What are the top level inputs? Trackers are returned as top level existentials
-getQuantifiedInputs :: (MonadIO m, MonadQuery m) => m [(Quantifier, NamedSymVar)]
+getQuantifiedInputs :: (MonadIO m, MonadQuery m) => m UserInps
 getQuantifiedInputs = do State{rinps} <- queryState
-                         ((rQinps, rTrackers), _) <- liftIO $ readIORef rinps
+                         (rQinps, rTrackers) <- liftIO $ getInputs <$> readIORef rinps
 
-                         let qinps    = reverse rQinps
-                             trackers = map (EX,) $ reverse rTrackers
+                         -- we rely on the nodeId ordering in UserInps to ensure
+                         -- the order of quantifiers
+                         let trackers :: UserInps
+                             trackers = inpsFromListWith (const EX) $ F.toList $ rTrackers
 
-                             -- separate the existential prefix, which will go first
-                             (preQs, postQs) = span (\(q, _) -> q == EX) qinps
-
-                         return $ preQs ++ trackers ++ postQs
+                         return $ rQinps <> trackers
 
 -- | Get observables, i.e., those explicitly labeled by the user with a call to 'Data.SBV.observe'.
 getObservables :: (MonadIO m, MonadQuery m) => m [(String, CV)]
@@ -1054,11 +1058,11 @@ getObservables = do State{rObservables} <- queryState
                     rObs <- liftIO $ readIORef rObservables
 
                     -- This intentionally reverses the result; since 'rObs' stores in reversed order
-                    let walk []             sofar = return sofar
-                        walk ((n, f, s):os) sofar = do cv <- getValueCV Nothing s
-                                                       if f cv
-                                                          then walk os ((n, cv) : sofar)
-                                                          else walk os            sofar
+                    let walk []             !sofar = return sofar
+                        walk ((!n, !f, !s):os) !sofar = do !cv <- getValueCV Nothing s
+                                                           if f cv
+                                                             then walk os ((n, cv) : sofar)
+                                                             else walk os            sofar
 
                     walk rObs []
 
@@ -1080,7 +1084,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                      topState@State{rUsedKinds} <- queryState
 
                      ki    <- liftIO $ readIORef rUsedKinds
-                     qinps <- getQuantifiedInputs
+                     qinps <- uInpsToList <$> getQuantifiedInputs
 
                      allUninterpreteds <- getUIs
 
@@ -1124,20 +1128,23 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                        , "***             SBV will use equivalence classes to generate all-satisfying instances."
                                                        ]
 
-                     let allModelInputs  = takeWhile ((/= ALL) . fst) qinps
+                       -- TODO [REVERSAL]: convert this to use map operations
+                     let allModelInputs :: [(Quantifier, NamedSymVar)]
+                         allModelInputs  = takeWhile ((/= ALL) . fst) qinps
+
                          -- Add on observables only if we're not in a quantified context:
                          grabObservables = length allModelInputs == length qinps -- i.e., we didn't drop anything
 
                          vars :: [(SVal, NamedSymVar)]
                          vars = let sortByNodeId :: [NamedSymVar] -> [NamedSymVar]
-                                    sortByNodeId = sortBy (compare `on` (\(SV _ n, _) -> n))
+                                    sortByNodeId = sortBy (compare `on` (\(NamedSymVar (SV _ n) _) -> n))
 
                                     mkSVal :: NamedSymVar -> (SVal, NamedSymVar)
-                                    mkSVal nm@(sv, _) = (SVal (kindOf sv) (Right (cache (const (return sv)))), nm)
+                                    mkSVal nm@(getSV -> sv) = (SVal (kindOf sv) (Right (cache (const (return sv)))), nm)
 
                                     ignored n = isNonModelVar cfg n || "__internal_sbv" `isPrefixOf` n
 
-                                in map mkSVal $ sortByNodeId [nv | (_, nv@(_, n)) <- allModelInputs, not (ignored n)]
+                                in map mkSVal $ sortByNodeId [nv | (_, nv) <- allModelInputs, not (ignored (getUserName' nv))]
 
                          -- If we have any universals, then the solutions are unique upto prefix existentials.
                          w = ALL `elem` map fst qinps
@@ -1191,8 +1198,8 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                        endMsg $ Just $ "[" ++ m ++ "]"
                                        return sofar{ allSatSolverReturnedDSat = True }
 
-                          Sat    -> do assocs <- mapM (\(sval, (sv, n)) -> do cv <- getValueCV Nothing sv
-                                                                              return (sv, (n, (sval, cv)))) vars
+                          Sat    -> do assocs <- mapM (\(sval, NamedSymVar sv n) -> do cv <- getValueCV Nothing sv
+                                                                                       return (sv, (n, (sval, cv)))) vars
 
                                        let getUIFun ui@(nm, t) = do cvs <- getUIFunCVAssoc Nothing ui
                                                                     return (nm, (t, cvs))
@@ -1207,17 +1214,17 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                            return []
 
                                        bindings <- let grab i@(ALL, _)      = return (i, Nothing)
-                                                       grab i@(EX, (sv, _)) = case sv `lookup` assocs of
-                                                                                Just (_, (_, cv)) -> return (i, Just cv)
-                                                                                Nothing           -> do cv <- getValueCV Nothing sv
-                                                                                                        return (i, Just cv)
+                                                       grab i@(EX, getSV -> sv) = case sv `lookup` assocs of
+                                                                                      Just (_, (_, cv)) -> return (i, Just cv)
+                                                                                      Nothing           -> do cv <- getValueCV Nothing sv
+                                                                                                              return (i, Just cv)
                                                    in if validationRequested cfg
                                                          then Just <$> mapM grab qinps
                                                          else return Nothing
 
                                        let model = SMTModel { modelObjectives = []
                                                             , modelBindings   = bindings
-                                                            , modelAssocs     = uiRegVals ++ sortOn fst obsvs ++ [(n, cv) | (_, (n, (_, cv))) <- assocs]
+                                                            , modelAssocs     = Map.fromList $ sortOn fst obsvs ++ [(unpack n, cv) | (_, (n, (_, cv))) <- assocs]
                                                             , modelUIFuns     = uiFunVals
                                                             }
                                            m = Satisfiable cfg model
@@ -1440,9 +1447,9 @@ runProofOn rm context comments res@(Result ki _qcInfo _observables _codeSegs is 
 
          skolemize :: [(Quantifier, NamedSymVar)] -> [Either SV (SV, [SV])]
          skolemize quants = go quants ([], [])
-           where go []                   (_,  sofar) = reverse sofar
-                 go ((ALL, (v, _)):rest) (us, sofar) = go rest (v:us, Left v : sofar)
-                 go ((EX,  (v, _)):rest) (us, sofar) = go rest (us,   Right (v, reverse us) : sofar)
+           where go []                   (_,  !sofar) = reverse sofar
+                 go ((ALL, getSV -> v):rest) (!us, !sofar) = go rest (v:us, Left v : sofar)
+                 go ((EX,  getSV -> v):rest) (!us, !sofar) = go rest (us,   Right (v, reverse us) : sofar)
 
          qinps      = if isSat then fst is else map flipQ (fst is)
          skolemMap  = skolemize qinps
@@ -1511,8 +1518,8 @@ executeQuery queryContext (QueryT userQuery) = do
                     case queryContext of
                       QueryInternal -> return ()         -- we're good, internal usages don't mess with scopes
                       QueryExternal -> do
-                        ((userInps, _), _) <- readIORef (rinps st)
-                        let badInps = reverse [n | (ALL, (_, n)) <- userInps]
+                        userInps <- uInpsToList . userInps <$> readIORef (rinps st)
+                        let badInps = reverse [n | (ALL, nm) <- userInps, let n = getUserName' nm]
                         case badInps of
                           [] -> return ()
                           _  -> let plu | length badInps > 1 = "s require"

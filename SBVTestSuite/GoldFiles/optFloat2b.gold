@@ -1,4 +1,5 @@
 Optimal model:
+  min-x = 0x000fffffffffffff :: Word64
   x     =          -Infinity :: Double
                   6    5          4         3         2         1         0
                   3 21098765432 1098765432109876543210987654321098765432109876543210
@@ -10,4 +11,3 @@ Optimal model:
         Exponent: 1024 (Stored: 2047, Bias: 1023)
        Hex-float: -Infinity
            Value: -Infinity
-  min-x = 0x000fffffffffffff :: Word64

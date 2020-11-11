@@ -1,4 +1,5 @@
 Optimal model:
+  max-x =     0xffefffffffffffff :: Word64
   x     = 1.7976931348623157e308 :: Double
                   6    5          4         3         2         1         0
                   3 21098765432 1098765432109876543210987654321098765432109876543210
@@ -10,4 +11,3 @@ Optimal model:
         Exponent: 1023 (Stored: 2046, Bias: 1023)
        Hex-float: +0x1.fffffffffffffp1023
            Value: +1.7976931348623157e308 (NORMAL)
-  max-x =     0xffefffffffffffff :: Word64
