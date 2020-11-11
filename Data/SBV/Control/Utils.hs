@@ -1047,7 +1047,7 @@ getQuantifiedInputs = do State{rinps} <- queryState
                          -- we rely on the nodeId ordering in UserInps to ensure
                          -- the order of quantifiers
                          let trackers :: UserInps
-                             trackers = inpsFromListWith (const EX) $ F.toList $ rTrackers
+                             trackers = inpsFromListWith (const EX) $ F.toList rTrackers
 
                          return $ rQinps <> trackers
 
