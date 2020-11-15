@@ -45,11 +45,12 @@ module Data.SBV.Core.Symbolic
   , svToSV, svToSymSV, forceSVArg
   , SBVExpr(..), newExpr, isCodeGenMode, isSafetyCheckingIStage, isRunIStage, isSetupIStage
   , Cached, cache, uncache, modifyState, modifyIncState
+  , ObsvMap
   , ArrayIndex(..), FArrayIndex(..), uncacheAI, uncacheFAI
-  , NamedSymVar(..), getSV, namedSymNodeId, getUserName, getUserName'
+  , NamedSymVar(..), getSV, swNodeId, namedSymNodeId, getUserName, getUserName'
   , getSValPathCondition, extendSValPathCondition
   , getTableIndex
-  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, getExistentials, getForAlls, lookupUserInputs, inpsFromListWith
+  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, prefixExistentials, prefixUniversals, lookupUserInputs, inpsFromListWith, uInpsPrefixBy
   , SBVPgm(..), MonadSymbolic(..), SymbolicT, Symbolic, runSymbolic, State(..), withNewIncState, IncState(..), incrementInternalCounter
   , inSMTMode, SBVRunMode(..), IStage(..), Result(..)
   , registerKind, registerLabel, recordObservable
@@ -90,7 +91,7 @@ import qualified Control.Monad.Writer.Lazy   as LW
 import qualified Control.Monad.Writer.Strict as SW
 import qualified Data.IORef                  as R    (modifyIORef')
 import qualified Data.Generics               as G    (Data(..))
-import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, filter, fromList)
+import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, foldr')
 import qualified Data.Map.Strict             as Map  (Map, empty, toList, lookup, insert, size)
 import qualified Data.Set                    as Set  (Set, empty, toList, insert, member)
 import qualified Data.Foldable               as F    (toList)
@@ -799,7 +800,7 @@ instance Show Result where
             where ni = show sv
                   ex | q == ALL = ""
                      | True     = ", existential"
-                  alias | ni == (T.unpack nm) = ""
+                  alias | ni == T.unpack nm = ""
                         | True     = ", aliasing " ++ show nm
 
           sha (i, (nm, (ai, bi), ctx)) = "  " ++ ni ++ " :: " ++ show ai ++ " -> " ++ show bi ++ alias
@@ -1034,14 +1035,27 @@ lookupUserInputs (swNodeId -> (NodeId i)) ui = res
                 Nothing -> error "Tried to lookup a user input that doesn't exist!"
                 Just x  -> x
 
-getExistentials :: UserInps -> [NamedSymVar]
-getExistentials = IMap.elems . fmap snd . IMap.filter ((==EX) . fst)
+-- getExistentials :: UserInps -> [NamedSymVar]
+-- getExistentials = IMap.elems . fmap snd . IMap.filter ((==EX) . fst)
 
-getForAlls :: UserInps -> [NamedSymVar]
-getForAlls = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
+-- getForAlls :: UserInps -> [NamedSymVar]
+-- getForAlls = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
 
 inpsToLists :: Inputs -> ([(Quantifier, NamedSymVar)], [NamedSymVar])
 inpsToLists =  (uInpsToList *** internInpsToList) . getInputs
+
+uInpsPrefixBy :: ((Quantifier, NamedSymVar) -> Bool) -> UserInps -> UserInps
+uInpsPrefixBy p = IMap.foldr' go mempty -- foldl yields same results as -- foldr
+                                        -- because laziness!
+  where go x@(_, nmSymVar) acc = if p x
+                                 then IMap.insert (getId $ namedSymNodeId nmSymVar) x acc
+                                 else acc
+
+prefixExistentials :: UserInps -> UserInps
+prefixExistentials = uInpsPrefixBy ((/= ALL) . fst)
+
+prefixUniversals :: UserInps -> UserInps
+prefixUniversals = uInpsPrefixBy ((== ALL) . fst)
 
 inpsFromListWith :: (NamedSymVar -> Quantifier) -> [NamedSymVar] -> UserInps
 inpsFromListWith f = IMap.fromList . fmap go
@@ -1181,7 +1195,9 @@ modifyIncState State{rIncState} field update = do
 
 -- | Add an observable
 recordObservable :: State -> String -> (CV -> Bool) -> SV -> IO ()
-recordObservable st !nm !chk !sv = modifyState st rObservables ((nm, chk, sv):) (return ())
+recordObservable st !nm !chk !sv = modifyState st rObservables (IMap.insert index new) (return ())
+  where new   = (nm, chk, sv)
+        index = getId $ swNodeId sv
 
 -- | Increment the variable counter
 incrementInternalCounter :: State -> IO Int
@@ -1602,7 +1618,7 @@ runSymbolic currentRunMode (SymbolicT c) = do
      rm        <- newIORef currentRunMode
      ctr       <- newIORef (-2) -- start from -2; False and True will always occupy the first two elements
      cInfo     <- newIORef []
-     observes  <- newIORef []
+     observes  <- newIORef mempty
      pgm       <- newIORef (SBVPgm S.empty)
      emap      <- newIORef Map.empty
      cmap      <- newIORef Map.empty
@@ -1692,7 +1708,7 @@ extractSymbolicSimulationState st@State{ spgm=pgm, rinps=inps, routs=outs, rtblM
    cgMap <- Map.toList <$> readIORef cgs
 
    traceVals   <- reverse <$> readIORef cInfo
-   observables <- reverse <$> readIORef observes
+   observables <- IMap.elems <$> readIORef observes
    extraCstrs  <- readIORef cstrs
    assertions  <- reverse <$> readIORef asserts
 
