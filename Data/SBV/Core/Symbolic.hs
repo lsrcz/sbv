@@ -841,6 +841,8 @@ instance Show ArrayContext where
 -- | Expression map, used for hash-consing
 type ExprMap = Map.Map SBVExpr SV
 
+type ObsvMap = IMap.IntMap (String, CV -> Bool, SV)
+
 -- | Constants are stored in a map, for hash-consing.
 type CnstMap = Map.Map CV SV
 
@@ -1060,7 +1062,7 @@ data State  = State { pathCond     :: SVal                             -- ^ kind
                     , runMode      :: IORef SBVRunMode
                     , rIncState    :: IORef IncState
                     , rCInfo       :: IORef [(String, CV)]
-                    , rObservables :: IORef [(String, CV -> Bool, SV)]
+                    , rObservables :: IORef ObsvMap
                     , rctr         :: IORef Int
                     , rUsedKinds   :: IORef KindSet
                     , rUsedLbls    :: IORef (Set.Set String)
@@ -1254,7 +1256,7 @@ internalVariable st k = do (NamedSymVar sv nm) <- newSV st k
                                                                                    -- I don't think the following can actually happen
                                                                                    -- but just be safe:
                                                                                    ALL  -> noInteractive [ "Internal universally quantified variable creation:"
-                                                                                                         , "  Named: " ++ (T.unpack nm)
+                                                                                                         , "  Named: " ++ T.unpack nm
                                                                                                          ])
                            return sv
 
@@ -1263,7 +1265,7 @@ newSV :: State -> Kind -> IO NamedSymVar
 newSV st k = do ctr <- incrementInternalCounter st
                 let !sv = SV k (NodeId ctr)
                 registerKind st k
-                return $ NamedSymVar sv $! 's' `T.cons` (T.pack $ show ctr)
+                return $ NamedSymVar sv $! 's' `T.cons` T.pack (show ctr)
 
 -- | Register a new kind with the system, used for uninterpreted sorts.
 -- NB: Is it safe to have new kinds in query mode? It could be that
