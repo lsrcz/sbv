@@ -5,7 +5,8 @@
 
 ### Version 8.9.5, Not released yet.
 
-  * Current dev version
+  * Add "Documentation/SBV/Examples/Misc/NestedArray.hs" to demonstrate how
+    to model multi-dimensional arrays in SBV.
 
   * Refactored Inputs to use `IntMap` internally, depending on use case this
     could yield a 15% speedup. Thanks to Jeffrey Young for the implementation.
