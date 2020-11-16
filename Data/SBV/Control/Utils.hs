@@ -1056,17 +1056,16 @@ getQuantifiedInputs = do State{rinps} <- queryState
 getObservables :: (MonadIO m, MonadQuery m) => m (IMap.IntMap (String, CV))
 getObservables = do State{rObservables} <- queryState
 
-                    -- this looks like a takeWhile over an Int map
-                    let check (n, f, sv) = do cv <- getValueCV Nothing sv
-                                              return $ f cv
-                        get   (n, f, sv) = do cv <- getValueCV Nothing sv
-                                              return (n, cv)
+                    -- hand write this filterM so we only call getValueCV once
+                    let walk !sofar []                  = return sofar
+                        walk !sofar ((i, (n, f, s)):os) = do cv <- getValueCV Nothing s
+                                                             if f cv
+                                                               then walk ((i, (n, cv)) : sofar) os
+                                                               else walk sofar                  os
 
-
-                    -- TODO better way to filter here
                     rObs <- liftIO $ readIORef rObservables
 
-                    return $ IMap.map get . filterM check $ rObs
+                    fmap IMap.fromList . walk mempty . IMap.toList $ rObs
 
 -- | Get UIs, both constants and functions. This call returns both the before and after query ones.
 -- | Generalization of 'Data.SBV.Control.getUIs'.
@@ -1209,7 +1208,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
 
                                        -- Add on observables if we're asked to do so:
                                        obsvs <- if grabObservables
-                                                   then fmap (\(s, _, cv) -> (s, cv)) <$> getObservables
+                                                   then getObservables
                                                    else do queryDebug ["*** In a quantified context, observables will not be printed."]
                                                            return mempty
 
