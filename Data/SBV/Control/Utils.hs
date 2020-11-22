@@ -53,7 +53,7 @@ import qualified Data.IntMap.Strict as IMap
 import qualified Data.Sequence      as S
 import qualified Data.Foldable as F (toList)
 
-import Control.Monad            (join, unless, zipWithM, when, replicateM,filterM)
+import Control.Monad            (join, unless, zipWithM, when, replicateM)
 import Control.Monad.IO.Class   (MonadIO, liftIO)
 import Control.Monad.Trans      (lift)
 import Control.Monad.Reader     (runReaderT)
@@ -83,7 +83,7 @@ import Data.SBV.Core.Symbolic ( IncState(..), withNewIncState, State(..), svToSV
                               , extractSymbolicSimulationState, MonadSymbolic(..), newUninterpreted
                               , NamedSymVar(..),getSV,getUserName', getInputs, swNodeId, getId
                               , userInps, uInpsToList, inpsFromListWith, UserInps
-                              , ObsvMap, prefixExistentials
+                              , prefixExistentials
                               )
 
 import Data.SBV.Core.AlgReals   (mergeAlgReals, AlgReal(..), RealPoint(..))
@@ -1197,8 +1197,9 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                        endMsg $ Just $ "[" ++ m ++ "]"
                                        return sofar{ allSatSolverReturnedDSat = True }
 
+                                       -- assocs :: IMap.IntMap (String, (SVal, CV))
                           Sat    -> do assocs <- mapM (\(sval, NamedSymVar sv n) -> do cv <- getValueCV Nothing sv
-                                                                                       return (unpack n, cv)) vars
+                                                                                       return (unpack n, (sval, cv))) vars
 
                                        let getUIFun ui@(nm, t) = do cvs <- getUIFunCVAssoc Nothing ui
                                                                     return (nm, (t, cvs))
@@ -1212,26 +1213,24 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                    else do queryDebug ["*** In a quantified context, observables will not be printed."]
                                                            return mempty
 
-                                       bindings <- let grab i@(ALL, _)      = return (i, Nothing)
-                                                       grab i@(EX, getSV -> sv) = case (getId $ swNodeId sv) `IMap.lookup` assocs of
-                                                                                    Just (_, cv) -> return (i, Just cv)
-                                                                                    Nothing      -> do cv <- getValueCV Nothing sv
-                                                                                                       return (i, Just cv)
+                                       bindings <- let grab i@(ALL, _)          = return (i, Nothing)
+                                                       grab i@(EX, getSV -> sv) = case getId (swNodeId sv) `IMap.lookup` assocs of
+                                                                                    Just (_, (_, cv)) -> return (i, Just cv)
+                                                                                    Nothing           -> do cv <- getValueCV Nothing sv
+                                                                                                            return (i, Just cv)
                                                    in if validationRequested cfg
                                                          then Just <$> mapM grab qinps
                                                          else return Nothing
 
-                                       let
-                                         r :: IMap.IntMap (String, CV)
-                                         r = obsvs <> assocs
-                                       let model = SMTModel { modelObjectives = []
-                                                            , modelBindings   = bindings
-                                                            , modelAssocs     = Map.fromList . F.toList $ r
+                                       let nameAssocs = obsvs <> fmap (\(name,(_,concreteVal)) -> (name, concreteVal)) assocs
+                                           model = SMTModel { modelObjectives = []
+                                                            , modelBindings   = IMap.elems <$> bindings
+                                                            , modelAssocs     = Map.fromList . F.toList $ nameAssocs
                                                             , modelUIFuns     = uiFunVals
                                                             }
                                            m = Satisfiable cfg model
 
-                                           (interpreteds, uninterpreteds) = partition (not . isFree . kindOf . fst) (map (snd . snd) assocs)
+                                           (interpreteds, uninterpreteds) = IMap.partition (not . isFree . kindOf . fst) (snd <$> assocs)
 
                                            interpretedRegUis = filter (not . isFree . kindOf . snd) uiRegVals
 
@@ -1244,7 +1243,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                            -- NB. When the kind is floating, we *have* to be careful, since +/- zero, and NaN's
                                            -- and equality don't get along!
                                            interpretedEqs :: [SVal]
-                                           interpretedEqs = [mkNotEq (kindOf sv) sv (SVal (kindOf sv) (Left cv)) | (sv, cv) <- interpretedRegUiSVs ++ interpreteds]
+                                           interpretedEqs = [mkNotEq (kindOf sv) sv (SVal (kindOf sv) (Left cv)) | (sv, cv) <- interpretedRegUiSVs ++ IMap.elems interpreteds]
                                               where mkNotEq k a b
                                                      | isDouble k || isFloat k = svNot (a `fpNotEq` b)
                                                      | True                    = a `svNotEqual` b
@@ -1261,6 +1260,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                             . map (map fst)                -- throw away values, we only need svals
                                                             . groupBy ((==) `on` snd)      -- make sure they belong to the same sort and have the same value
                                                             . sortOn snd                   -- sort them according to their CV (i.e., sort/value)
+                                                            . F.toList
                                                             $ uninterpreteds
                                              where pwDistinct :: [SVal] -> [SVal]
                                                    pwDistinct ss = [x `svNotEqual` y | (x:ys) <- tails ss, y <- ys]
