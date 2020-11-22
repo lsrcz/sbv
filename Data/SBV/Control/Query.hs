@@ -52,7 +52,9 @@ import Data.SBV.Core.Data
 
 import Data.SBV.Core.Symbolic   ( MonadQuery(..), State(..)
                                 , incrementInternalCounter, validationRequested , uInpsToList
-                                , prefixExistentials, prefixUniversals, swNodeId
+                                , prefixExistentials, prefixUniversals
+                                , swNodeId
+                                -- , namedSymNodeId
                                 )
 
 import Data.SBV.Utils.SExpr
@@ -319,7 +321,6 @@ getModelAtIndex mbi = do
 
            -- for "sat", display the prefix existentials. for "proof", display the prefix universals
           let
-            -- allModelInputs :: UserInps -- IntMap (Quantifier, NamedSymVar)
             allModelInputs = if isSAT
                              then prefixExistentials qinps
                              else prefixUniversals   qinps

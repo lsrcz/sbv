@@ -91,7 +91,7 @@ import qualified Control.Monad.Writer.Lazy   as LW
 import qualified Control.Monad.Writer.Strict as SW
 import qualified Data.IORef                  as R    (modifyIORef')
 import qualified Data.Generics               as G    (Data(..))
-import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, foldr', filter)
+import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, fromAscList, filter,toList)
 import qualified Data.Map.Strict             as Map  (Map, empty, toList, lookup, insert, size)
 import qualified Data.Set                    as Set  (Set, empty, toList, insert, member)
 import qualified Data.Foldable               as F    (toList)
@@ -1044,12 +1044,11 @@ getUniversals = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
 inpsToLists :: Inputs -> ([(Quantifier, NamedSymVar)], [NamedSymVar])
 inpsToLists =  (uInpsToList *** internInpsToList) . getInputs
 
+-- | get a prefix of the user inputs by a predicate. Note that we could not rely
+-- on fusion here but this is cheap and easy until there is an observable slow
+-- down from not fusing
 uInpsPrefixBy :: ((Quantifier, NamedSymVar) -> Bool) -> UserInps -> UserInps
-uInpsPrefixBy p = IMap.foldr' go mempty -- foldl yields same results as -- foldr
-                                        -- because laziness!
-  where go x@(_, nmSymVar) acc = if p x
-                                 then IMap.insert (getId $ namedSymNodeId nmSymVar) x acc
-                                 else acc
+uInpsPrefixBy p = IMap.fromAscList . takeWhile (p . snd) . IMap.toList
 
 prefixExistentials :: UserInps -> UserInps
 prefixExistentials = uInpsPrefixBy ((/= ALL) . fst)
