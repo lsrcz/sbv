@@ -280,7 +280,7 @@ class ExtractIO m => MProvable m a where
 
 
                    let universals :: [NamedSymVar]
-                       universals = getForAlls qinps
+                       universals = getUniversals qinps
 
                        firstUniversal
                          | null universals = error "Data.SBV: Impossible happened! Universal optimization with no universals!"

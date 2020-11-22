@@ -50,7 +50,7 @@ module Data.SBV.Core.Symbolic
   , NamedSymVar(..), getSV, swNodeId, namedSymNodeId, getUserName, getUserName'
   , getSValPathCondition, extendSValPathCondition
   , getTableIndex
-  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, prefixExistentials, prefixUniversals, lookupUserInputs, inpsFromListWith, uInpsPrefixBy
+  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, prefixExistentials, prefixUniversals, lookupUserInputs, inpsFromListWith, uInpsPrefixBy, getUniversals, getExistentials
   , SBVPgm(..), MonadSymbolic(..), SymbolicT, Symbolic, runSymbolic, State(..), withNewIncState, IncState(..), incrementInternalCounter
   , inSMTMode, SBVRunMode(..), IStage(..), Result(..)
   , registerKind, registerLabel, recordObservable
@@ -91,7 +91,7 @@ import qualified Control.Monad.Writer.Lazy   as LW
 import qualified Control.Monad.Writer.Strict as SW
 import qualified Data.IORef                  as R    (modifyIORef')
 import qualified Data.Generics               as G    (Data(..))
-import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, foldr')
+import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, foldr', filter)
 import qualified Data.Map.Strict             as Map  (Map, empty, toList, lookup, insert, size)
 import qualified Data.Set                    as Set  (Set, empty, toList, insert, member)
 import qualified Data.Foldable               as F    (toList)
@@ -1035,11 +1035,11 @@ lookupUserInputs (swNodeId -> (NodeId i)) ui = res
                 Nothing -> error "Tried to lookup a user input that doesn't exist!"
                 Just x  -> x
 
--- getExistentials :: UserInps -> [NamedSymVar]
--- getExistentials = IMap.elems . fmap snd . IMap.filter ((==EX) . fst)
+getExistentials :: UserInps -> [NamedSymVar]
+getExistentials = IMap.elems . fmap snd . IMap.filter ((==EX) . fst)
 
--- getForAlls :: UserInps -> [NamedSymVar]
--- getForAlls = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
+getUniversals :: UserInps -> [NamedSymVar]
+getUniversals = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
 
 inpsToLists :: Inputs -> ([(Quantifier, NamedSymVar)], [NamedSymVar])
 inpsToLists =  (uInpsToList *** internInpsToList) . getInputs

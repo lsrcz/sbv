@@ -47,7 +47,6 @@ import Data.Text     (unpack)
 import Data.List     (intercalate, nubBy)
 import Data.Maybe    (listToMaybe, catMaybes)
 import Data.Function (on)
-import Data.Bifunctor (second)
 
 import Data.SBV.Core.Data
 
@@ -381,7 +380,7 @@ getModelAtIndex mbi = do
 
           return SMTModel { modelObjectives = []
                           , modelBindings   = IM.elems <$> bindings
-                          , modelAssocs     = M.fromList . F.toList $ uiVals <> assocs
+                          , modelAssocs     = M.fromList $ uiVals <> IM.elems assocs
                           , modelUIFuns     = uiFunVals
                           }
 
