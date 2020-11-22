@@ -1048,7 +1048,7 @@ getQuantifiedInputs = do State{rinps} <- queryState
                          -- we rely on the nodeId ordering in UserInps to ensure
                          -- the order of quantifiers
                          let trackers :: UserInps
-                             trackers = inpsFromListWith (const EX) $ F.toList $ rTrackers
+                             trackers = inpsFromListWith (const EX) $ F.toList rTrackers
 
                          return $ rQinps <> trackers
 
@@ -1133,7 +1133,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                          allModelInputs  = prefixExistentials qinps
 
                          -- Add on observables only if we're not in a quantified context:
-                         grabObservables = length allModelInputs == length qinps -- i.e., we didn't drop anything
+                         grabObservables = IMap.size allModelInputs == IMap.size qinps -- i.e., we didn't drop anything
 
                          mkSVal :: NamedSymVar -> (SVal, NamedSymVar)
                          mkSVal nm@(getSV -> sv) = (SVal (kindOf sv) (Right (cache (const (return sv)))), nm)
@@ -1141,8 +1141,8 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                          ignored n = isNonModelVar cfg n || "__internal_sbv" `isPrefixOf` n
 
                          vars :: IMap.IntMap (SVal, NamedSymVar)
-                         vars = fmap (mkSVal . snd) .
-                                IMap.filter (not . ignored . getUserName' . snd)
+                         vars = fmap (mkSVal . snd)
+                                . IMap.filter (not . ignored . getUserName' . snd)
                                 $ allModelInputs
 
                          -- If we have any universals, then the solutions are unique upto prefix existentials.
@@ -1198,7 +1198,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                        return sofar{ allSatSolverReturnedDSat = True }
 
                                        -- assocs :: IMap.IntMap (String, (SVal, CV))
-                          Sat    -> do assocs <- mapM (\(sval, NamedSymVar sv n) -> do cv <- getValueCV Nothing sv
+                          Sat    -> do assocs <- mapM (\(sval, NamedSymVar sv n) -> do !cv <- getValueCV Nothing sv
                                                                                        return (unpack n, (sval, cv))) vars
 
                                        let getUIFun ui@(nm, t) = do cvs <- getUIFunCVAssoc Nothing ui
