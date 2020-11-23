@@ -47,12 +47,14 @@ import Data.Text     (unpack)
 import Data.List     (intercalate, nubBy)
 import Data.Maybe    (listToMaybe, catMaybes)
 import Data.Function (on)
-import Data.Bifunctor (second)
 
 import Data.SBV.Core.Data
 
 import Data.SBV.Core.Symbolic   ( MonadQuery(..), State(..)
                                 , incrementInternalCounter, validationRequested , uInpsToList
+                                , prefixExistentials, prefixUniversals
+                                , swNodeId
+                                -- , namedSymNodeId
                                 )
 
 import Data.SBV.Utils.SExpr
@@ -314,37 +316,36 @@ getModelAtIndex mbi = do
       m@Concrete{}        -> error $ "SBV.getModel: Model is not available in mode: " ++ show m
       SMTMode _ _ isSAT _ -> do
           cfg   <- getConfig
-          qinps <- IM.elems <$> getQuantifiedInputs
+          qinps <- getQuantifiedInputs
           uis   <- getUIs
 
            -- for "sat", display the prefix existentials. for "proof", display the prefix universals
           let
-            allModelInputs :: M.Map Quantifier [NamedSymVar]
             allModelInputs = if isSAT
-                             then M.fromListWith (<>) . fmap (second pure) $ takeWhile ((/= ALL) . fst) qinps
-                             else M.fromListWith (<>) . fmap (second pure) $ takeWhile ((== ALL) . fst) qinps
+                             then prefixExistentials qinps
+                             else prefixUniversals   qinps
               -- Add on observables only if we're not in a quantified context
-            grabObservables = length (M.elems allModelInputs) == length qinps -- i.e., we didn't drop anything
+            grabObservables = IM.size allModelInputs == IM.size qinps -- i.e., we didn't drop anything
 
           obsvs <- if grabObservables
                    then getObservables
-                   else queryDebug ["*** In a quantified context, obvservables will not be printed."] >> return []
+                   else queryDebug ["*** In a quantified context, obvservables will not be printed."] >> return mempty
 
           let
-            grab :: (MonadIO m, MonadQuery m) => NamedSymVar -> m (M.Map SV (String, CV))
+            grab :: (MonadIO m, MonadQuery m) => NamedSymVar -> m (String, CV)
             grab (NamedSymVar sv nm) = wrap <$> theCV
                  where
                    theCV :: (MonadIO m, MonadQuery m) => m CV
                    !theCV = getValueCV mbi sv
 
-                   wrap :: CV -> M.Map SV (String, CV)
-                   wrap !c = M.singleton sv (name, c)
+                   wrap :: CV -> (String, CV)
+                   wrap !c = (name, c)
                      where !name = unpack nm
 
-          !inputAssocs <- mconcat . mconcat . M.elems <$> mapM (mapM grab) allModelInputs
+          !inputAssocs <- mapM (grab . snd) allModelInputs
 
           let --TODO this is a map merge through a list, just do the map merge
-              !assocs    = M.fromList $! obsvs <> M.elems inputAssocs
+              !assocs    = obsvs <> inputAssocs
 
 
           -- collect UIs, and UI functions if requested
@@ -360,10 +361,10 @@ getModelAtIndex mbi = do
                   Just cmds -> mapM_ (send True) cmds
 
           bindings <- let get i@(ALL, _)      = return (i, Nothing)
-                          get i@(EX, getSV -> sv) = case sv `M.lookup` inputAssocs of
-                                                  Just (_, cv) -> return (i, Just cv)
-                                                  Nothing      -> do !cv <- getValueCV mbi sv
-                                                                     return (i, Just cv)
+                          get i@(EX, getSV -> sv) = case getId (swNodeId sv) `IM.lookup` inputAssocs of
+                                                      Just (_, cv) -> return (i, Just cv)
+                                                      Nothing      -> do !cv <- getValueCV mbi sv
+                                                                         return (i, Just cv)
 
                           flipQ i@(q, sv) = case (isSAT, q) of
                                              (True,  _ )  -> i
@@ -379,8 +380,8 @@ getModelAtIndex mbi = do
           uiVals    <- mapM (\ui@(nm, _) -> (nm,) <$> getUICVal mbi ui) uiRegs
 
           return SMTModel { modelObjectives = []
-                          , modelBindings   = bindings
-                          , modelAssocs     = M.fromList uiVals <> assocs
+                          , modelBindings   = IM.elems <$> bindings
+                          , modelAssocs     = M.fromList $ uiVals <> IM.elems assocs
                           , modelUIFuns     = uiFunVals
                           }
 

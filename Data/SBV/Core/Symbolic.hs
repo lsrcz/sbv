@@ -45,11 +45,12 @@ module Data.SBV.Core.Symbolic
   , svToSV, svToSymSV, forceSVArg
   , SBVExpr(..), newExpr, isCodeGenMode, isSafetyCheckingIStage, isRunIStage, isSetupIStage
   , Cached, cache, uncache, modifyState, modifyIncState
+  , ObsvMap
   , ArrayIndex(..), FArrayIndex(..), uncacheAI, uncacheFAI
-  , NamedSymVar(..), getSV, namedSymNodeId, getUserName, getUserName'
+  , NamedSymVar(..), getSV, swNodeId, namedSymNodeId, getUserName, getUserName'
   , getSValPathCondition, extendSValPathCondition
   , getTableIndex
-  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, getExistentials, getForAlls, lookupUserInputs, inpsFromListWith
+  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, prefixExistentials, prefixUniversals, lookupUserInputs, inpsFromListWith, uInpsPrefixBy, getUniversals, getExistentials
   , SBVPgm(..), MonadSymbolic(..), SymbolicT, Symbolic, runSymbolic, State(..), withNewIncState, IncState(..), incrementInternalCounter
   , inSMTMode, SBVRunMode(..), IStage(..), Result(..)
   , registerKind, registerLabel, recordObservable
@@ -90,7 +91,7 @@ import qualified Control.Monad.Writer.Lazy   as LW
 import qualified Control.Monad.Writer.Strict as SW
 import qualified Data.IORef                  as R    (modifyIORef')
 import qualified Data.Generics               as G    (Data(..))
-import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, filter, fromList)
+import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, fromAscList, filter,toList)
 import qualified Data.Map.Strict             as Map  (Map, empty, toList, lookup, insert, size)
 import qualified Data.Set                    as Set  (Set, empty, toList, insert, member)
 import qualified Data.Foldable               as F    (toList)
@@ -850,6 +851,8 @@ instance Show ArrayContext where
 -- | Expression map, used for hash-consing
 type ExprMap = Map.Map SBVExpr SV
 
+type ObsvMap = IMap.IntMap (String, CV -> Bool, SV)
+
 -- | Constants are stored in a map, for hash-consing.
 type CnstMap = Map.Map CV SV
 
@@ -1044,11 +1047,23 @@ lookupUserInputs (swNodeId -> (NodeId i)) ui = res
 getExistentials :: UserInps -> [NamedSymVar]
 getExistentials = IMap.elems . fmap snd . IMap.filter ((==EX) . fst)
 
-getForAlls :: UserInps -> [NamedSymVar]
-getForAlls = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
+getUniversals :: UserInps -> [NamedSymVar]
+getUniversals = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
 
 inpsToLists :: Inputs -> ([(Quantifier, NamedSymVar)], [NamedSymVar])
 inpsToLists =  (uInpsToList *** internInpsToList) . getInputs
+
+-- | get a prefix of the user inputs by a predicate. Note that we could not rely
+-- on fusion here but this is cheap and easy until there is an observable slow
+-- down from not fusing
+uInpsPrefixBy :: ((Quantifier, NamedSymVar) -> Bool) -> UserInps -> UserInps
+uInpsPrefixBy p = IMap.fromAscList . takeWhile (p . snd) . IMap.toList
+
+prefixExistentials :: UserInps -> UserInps
+prefixExistentials = uInpsPrefixBy ((/= ALL) . fst)
+
+prefixUniversals :: UserInps -> UserInps
+prefixUniversals = uInpsPrefixBy ((== ALL) . fst)
 
 inpsFromListWith :: (NamedSymVar -> Quantifier) -> [NamedSymVar] -> UserInps
 inpsFromListWith f = IMap.fromList . fmap go
@@ -1069,7 +1084,7 @@ data State  = State { pathCond     :: SVal                             -- ^ kind
                     , runMode      :: IORef SBVRunMode
                     , rIncState    :: IORef IncState
                     , rCInfo       :: IORef [(String, CV)]
-                    , rObservables :: IORef [(String, CV -> Bool, SV)]
+                    , rObservables :: IORef ObsvMap
                     , rctr         :: IORef Int
                     , rUsedKinds   :: IORef KindSet
                     , rUsedLbls    :: IORef (Set.Set String)
@@ -1188,7 +1203,9 @@ modifyIncState State{rIncState} field update = do
 
 -- | Add an observable
 recordObservable :: State -> String -> (CV -> Bool) -> SV -> IO ()
-recordObservable st !nm !chk !sv = modifyState st rObservables ((nm, chk, sv):) (return ())
+recordObservable st !nm !chk !sv = modifyState st rObservables (IMap.insert index new) (return ())
+  where new   = (nm, chk, sv)
+        index = getId $ swNodeId sv
 
 -- | Increment the variable counter
 incrementInternalCounter :: State -> IO Int
@@ -1609,7 +1626,7 @@ runSymbolic currentRunMode (SymbolicT c) = do
      rm        <- newIORef currentRunMode
      ctr       <- newIORef (-2) -- start from -2; False and True will always occupy the first two elements
      cInfo     <- newIORef []
-     observes  <- newIORef []
+     observes  <- newIORef mempty
      pgm       <- newIORef (SBVPgm S.empty)
      emap      <- newIORef Map.empty
      cmap      <- newIORef Map.empty
@@ -1699,7 +1716,7 @@ extractSymbolicSimulationState st@State{ spgm=pgm, rinps=inps, routs=outs, rtblM
    cgMap <- Map.toList <$> readIORef cgs
 
    traceVals   <- reverse <$> readIORef cInfo
-   observables <- reverse <$> readIORef observes
+   observables <- IMap.elems <$> readIORef observes
    extraCstrs  <- readIORef cstrs
    assertions  <- reverse <$> readIORef asserts
 

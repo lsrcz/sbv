@@ -81,8 +81,9 @@ import Data.SBV.Core.Symbolic ( IncState(..), withNewIncState, State(..), svToSV
                               , registerLabel, svMkSymVar, validationRequested
                               , isSafetyCheckingIStage, isSetupIStage, isRunIStage, IStage(..), QueryT(..)
                               , extractSymbolicSimulationState, MonadSymbolic(..), newUninterpreted
-                              , NamedSymVar(..),getSV,getUserName', getInputs
+                              , NamedSymVar(..),getSV,getUserName', getInputs, swNodeId, getId
                               , userInps, uInpsToList, inpsFromListWith, UserInps
+                              , prefixExistentials
                               )
 
 import Data.SBV.Core.AlgReals   (mergeAlgReals, AlgReal(..), RealPoint(..))
@@ -1052,19 +1053,19 @@ getQuantifiedInputs = do State{rinps} <- queryState
                          return $ rQinps <> trackers
 
 -- | Get observables, i.e., those explicitly labeled by the user with a call to 'Data.SBV.observe'.
-getObservables :: (MonadIO m, MonadQuery m) => m [(String, CV)]
+getObservables :: (MonadIO m, MonadQuery m) => m (IMap.IntMap (String, CV))
 getObservables = do State{rObservables} <- queryState
+
+                    -- hand write this filterM so we only call getValueCV once
+                    let walk !sofar []                  = return sofar
+                        walk !sofar ((i, (n, f, s)):os) = do cv <- getValueCV Nothing s
+                                                             if f cv
+                                                               then walk ((i, (n, cv)) : sofar) os
+                                                               else walk sofar                  os
 
                     rObs <- liftIO $ readIORef rObservables
 
-                    -- This intentionally reverses the result; since 'rObs' stores in reversed order
-                    let walk []             !sofar = return sofar
-                        walk ((!n, !f, !s):os) !sofar = do !cv <- getValueCV Nothing s
-                                                           if f cv
-                                                             then walk os ((n, cv) : sofar)
-                                                             else walk os            sofar
-
-                    walk rObs []
+                    fmap IMap.fromList . walk mempty . IMap.toList $ rObs
 
 -- | Get UIs, both constants and functions. This call returns both the before and after query ones.
 -- | Generalization of 'Data.SBV.Control.getUIs'.
@@ -1084,7 +1085,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                      topState@State{rUsedKinds} <- queryState
 
                      ki    <- liftIO $ readIORef rUsedKinds
-                     qinps <- uInpsToList <$> getQuantifiedInputs
+                     qinps <- getQuantifiedInputs
 
                      allUninterpreteds <- getUIs
 
@@ -1128,26 +1129,24 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                        , "***             SBV will use equivalence classes to generate all-satisfying instances."
                                                        ]
 
-                       -- TODO [REVERSAL]: convert this to use map operations
-                     let allModelInputs :: [(Quantifier, NamedSymVar)]
-                         allModelInputs  = takeWhile ((/= ALL) . fst) qinps
+                     let allModelInputs :: UserInps
+                         allModelInputs  = prefixExistentials qinps
 
                          -- Add on observables only if we're not in a quantified context:
-                         grabObservables = length allModelInputs == length qinps -- i.e., we didn't drop anything
+                         grabObservables = IMap.size allModelInputs == IMap.size qinps -- i.e., we didn't drop anything
 
-                         vars :: [(SVal, NamedSymVar)]
-                         vars = let sortByNodeId :: [NamedSymVar] -> [NamedSymVar]
-                                    sortByNodeId = sortBy (compare `on` (\(NamedSymVar (SV _ n) _) -> n))
+                         mkSVal :: NamedSymVar -> (SVal, NamedSymVar)
+                         mkSVal nm@(getSV -> sv) = (SVal (kindOf sv) (Right (cache (const (return sv)))), nm)
 
-                                    mkSVal :: NamedSymVar -> (SVal, NamedSymVar)
-                                    mkSVal nm@(getSV -> sv) = (SVal (kindOf sv) (Right (cache (const (return sv)))), nm)
+                         ignored n = isNonModelVar cfg n || "__internal_sbv" `isPrefixOf` n
 
-                                    ignored n = isNonModelVar cfg n || "__internal_sbv" `isPrefixOf` n
-
-                                in map mkSVal $ sortByNodeId [nv | (_, nv) <- allModelInputs, not (ignored (getUserName' nv))]
+                         vars :: IMap.IntMap (SVal, NamedSymVar)
+                         vars = fmap (mkSVal . snd)
+                                . IMap.filter (not . ignored . getUserName' . snd)
+                                $ allModelInputs
 
                          -- If we have any universals, then the solutions are unique upto prefix existentials.
-                         w = ALL `elem` map fst qinps
+                         w = ALL `elem` fmap fst qinps
 
                      res <- loop grabObservables topState (allUiFuns, uiFuns) allUiRegs qinps vars cfg AllSatResult { allSatMaxModelCountReached  = False
                                                                                                                     , allSatHasPrefixExistentials = w
@@ -1198,8 +1197,9 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                        endMsg $ Just $ "[" ++ m ++ "]"
                                        return sofar{ allSatSolverReturnedDSat = True }
 
-                          Sat    -> do assocs <- mapM (\(sval, NamedSymVar sv n) -> do cv <- getValueCV Nothing sv
-                                                                                       return (sv, (n, (sval, cv)))) vars
+                                       -- assocs :: IMap.IntMap (String, (SVal, CV))
+                          Sat    -> do assocs <- mapM (\(sval, NamedSymVar sv n) -> do !cv <- getValueCV Nothing sv
+                                                                                       return (unpack n, (sval, cv))) vars
 
                                        let getUIFun ui@(nm, t) = do cvs <- getUIFunCVAssoc Nothing ui
                                                                     return (nm, (t, cvs))
@@ -1211,25 +1211,26 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                        obsvs <- if grabObservables
                                                    then getObservables
                                                    else do queryDebug ["*** In a quantified context, observables will not be printed."]
-                                                           return []
+                                                           return mempty
 
-                                       bindings <- let grab i@(ALL, _)      = return (i, Nothing)
-                                                       grab i@(EX, getSV -> sv) = case sv `lookup` assocs of
-                                                                                      Just (_, (_, cv)) -> return (i, Just cv)
-                                                                                      Nothing           -> do cv <- getValueCV Nothing sv
-                                                                                                              return (i, Just cv)
+                                       bindings <- let grab i@(ALL, _)          = return (i, Nothing)
+                                                       grab i@(EX, getSV -> sv) = case getId (swNodeId sv) `IMap.lookup` assocs of
+                                                                                    Just (_, (_, cv)) -> return (i, Just cv)
+                                                                                    Nothing           -> do cv <- getValueCV Nothing sv
+                                                                                                            return (i, Just cv)
                                                    in if validationRequested cfg
                                                          then Just <$> mapM grab qinps
                                                          else return Nothing
 
-                                       let model = SMTModel { modelObjectives = []
-                                                            , modelBindings   = bindings
-                                                            , modelAssocs     = Map.fromList $ sortOn fst obsvs ++ [(unpack n, cv) | (_, (n, (_, cv))) <- assocs]
+                                       let nameAssocs = obsvs <> fmap (\(name,(_,concreteVal)) -> (name, concreteVal)) assocs
+                                           model = SMTModel { modelObjectives = []
+                                                            , modelBindings   = IMap.elems <$> bindings
+                                                            , modelAssocs     = Map.fromList . F.toList $ nameAssocs
                                                             , modelUIFuns     = uiFunVals
                                                             }
                                            m = Satisfiable cfg model
 
-                                           (interpreteds, uninterpreteds) = partition (not . isFree . kindOf . fst) (map (snd . snd) assocs)
+                                           (interpreteds, uninterpreteds) = IMap.partition (not . isFree . kindOf . fst) (snd <$> assocs)
 
                                            interpretedRegUis = filter (not . isFree . kindOf . snd) uiRegVals
 
@@ -1242,7 +1243,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                            -- NB. When the kind is floating, we *have* to be careful, since +/- zero, and NaN's
                                            -- and equality don't get along!
                                            interpretedEqs :: [SVal]
-                                           interpretedEqs = [mkNotEq (kindOf sv) sv (SVal (kindOf sv) (Left cv)) | (sv, cv) <- interpretedRegUiSVs ++ interpreteds]
+                                           interpretedEqs = [mkNotEq (kindOf sv) sv (SVal (kindOf sv) (Left cv)) | (sv, cv) <- interpretedRegUiSVs ++ IMap.elems interpreteds]
                                               where mkNotEq k a b
                                                      | isDouble k || isFloat k = svNot (a `fpNotEq` b)
                                                      | True                    = a `svNotEqual` b
@@ -1259,6 +1260,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                             . map (map fst)                -- throw away values, we only need svals
                                                             . groupBy ((==) `on` snd)      -- make sure they belong to the same sort and have the same value
                                                             . sortOn snd                   -- sort them according to their CV (i.e., sort/value)
+                                                            . F.toList
                                                             $ uninterpreteds
                                              where pwDistinct :: [SVal] -> [SVal]
                                                    pwDistinct ss = [x `svNotEqual` y | (x:ys) <- tails ss, y <- ys]
