@@ -11,6 +11,8 @@
   * Refactored Inputs to use `IntMap` internally, depending on use case this
     could yield a 15% speedup. Thanks to Jeffrey Young for the implementation.
 
+  * Add "Documentation/SBV/Examples/Puzzles/Murder.hs" as another puzzle example.
+
 ### Version 8.9, 2020-10-28
 
   * Rename 'sbvAvailableSolvers' to 'getAvailableSolvers'.
