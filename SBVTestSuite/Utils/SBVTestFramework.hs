@@ -195,10 +195,9 @@ qc1 nm opC opS = [cf, sm]
                         let getCV vnm (SBV (SVal _ (Left c))) = (vnm, c)
                             getCV vnm (SBV (SVal k _       )) = error $ "qc2.getCV: Impossible happened, non-CV value while extracting: " ++ show (vnm, k)
 
-                            vals = M.fromList $
-                                   [ getCV "i"        (literal i)
-                                   , getCV "Expected" (literal expected)
-                                   ]
+                            vals = M.fromList [ getCV "i"        (literal i)
+                                              , getCV "Expected" (literal expected)
+                                              ]
 
                             model = case result of
                                       Right v -> showModel defaultSMTCfg (SMTModel [] Nothing (vals <> M.fromList [getCV "Result" (literal v)]) [])
@@ -254,11 +253,10 @@ qc2 nm opC opS = [cf, sm]
                         let getCV vnm (SBV (SVal _ (Left c))) = (vnm, c)
                             getCV vnm (SBV (SVal k _       )) = error $ "qc2.getCV: Impossible happened, non-CV value while extracting: " ++ show (vnm, k)
 
-                            vals = M.fromList $
-                                   [ getCV "i1"       (literal i1)
-                                   , getCV "i2"       (literal i2)
-                                   , getCV "Expected" (literal expected)
-                                   ]
+                            vals = M.fromList [ getCV "i1"       (literal i1)
+                                              , getCV "i2"       (literal i2)
+                                              , getCV "Expected" (literal expected)
+                                              ]
 
                             model = case result of
                                       Right v -> showModel defaultSMTCfg (SMTModel [] Nothing (vals <> M.fromList [getCV "Result" (literal v)]) [])

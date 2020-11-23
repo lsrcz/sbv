@@ -591,29 +591,38 @@ instance Show SBVExpr where
 -- | A program is a sequence of assignments
 newtype SBVPgm = SBVPgm {pgmAssignments :: S.Seq (SV, SBVExpr)}
 
--- | 'NamedSymVar' pairs symbolic values and user given/automatically generated names
+-- | Helper synonym for text, in case we switch to something else later.
 type UserName = T.Text
+
+-- | 'NamedSymVar' pairs symbolic values and user given/automatically generated names
 data NamedSymVar = NamedSymVar !SV !T.Text
                  deriving (Eq,Show,Generic)
 
-instance Ord NamedSymVar where compare (NamedSymVar l _) (NamedSymVar r _) = compare l r
+instance Ord NamedSymVar where
+  compare (NamedSymVar l _) (NamedSymVar r _) = compare l r
 
 
+-- | Convert to a named symvar, from string
 toNamedSV' :: SV -> String -> NamedSymVar
 toNamedSV' s = NamedSymVar s . T.pack
 
+-- | Convert to a named symvar, from text
 toNamedSV :: SV -> T.Text -> NamedSymVar
 toNamedSV = NamedSymVar
 
+-- | Get the node id from a named sym var
 namedSymNodeId :: NamedSymVar -> NodeId
 namedSymNodeId = swNodeId . getSV
 
+-- | Get the SV from a named sym var
 getSV :: NamedSymVar -> SV
 getSV (NamedSymVar s _) = s
 
+-- | Get the user-name typed value from named sym var
 getUserName :: NamedSymVar -> UserName
 getUserName (NamedSymVar _ nm) = nm
 
+-- | Get the string typed value from named sym var
 getUserName' :: NamedSymVar -> String
 getUserName' = T.unpack . getUserName
 
@@ -801,7 +810,7 @@ instance Show Result where
                   ex | q == ALL = ""
                      | True     = ", existential"
                   alias | ni == T.unpack nm = ""
-                        | True     = ", aliasing " ++ show nm
+                        | True              = ", aliasing " ++ show nm
 
           sha (i, (nm, (ai, bi), ctx)) = "  " ++ ni ++ " :: " ++ show ai ++ " -> " ++ show bi ++ alias
                                        ++ "\n     Context: "     ++ show ctx

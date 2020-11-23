@@ -426,7 +426,7 @@ class ExtractIO m => MProvable m a where
 
           check env = do let univs    = [n | ((ALL, getUserName' -> n), _) <- env]
                              envShown = showModelDictionary True True cfg modelBinds
-                                where modelBinds = [(unpack n, fake q s v) | ((q, (NamedSymVar s n)), v) <- env]
+                                where modelBinds = [(unpack n, fake q s v) | ((q, NamedSymVar s n), v) <- env]
                                       fake q s Nothing
                                         | q == ALL
                                         = RegularCV $ CV (kindOf s) $ CUserSort (Nothing, "<universally quantified>")
