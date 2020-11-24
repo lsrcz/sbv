@@ -36,7 +36,6 @@ import qualified Control.Exception as C
 import Control.Monad.Trans (liftIO)
 
 import qualified Data.ByteString.Lazy.Char8 as LBC
-import qualified Data.Map.Strict as M
 
 import System.Directory   (removeFile)
 import System.Environment (lookupEnv)
@@ -195,12 +194,12 @@ qc1 nm opC opS = [cf, sm]
                         let getCV vnm (SBV (SVal _ (Left c))) = (vnm, c)
                             getCV vnm (SBV (SVal k _       )) = error $ "qc2.getCV: Impossible happened, non-CV value while extracting: " ++ show (vnm, k)
 
-                            vals = M.fromList [ getCV "i"        (literal i)
-                                              , getCV "Expected" (literal expected)
-                                              ]
+                            vals = [ getCV "i"        (literal i)
+                                   , getCV "Expected" (literal expected)
+                                   ]
 
                             model = case result of
-                                      Right v -> showModel defaultSMTCfg (SMTModel [] Nothing (vals <> M.fromList [getCV "Result" (literal v)]) [])
+                                      Right v -> showModel defaultSMTCfg (SMTModel [] Nothing (vals <> [getCV "Result" (literal v)]) [])
                                       Left  e -> showModel defaultSMTCfg (SMTModel [] Nothing vals []) ++ "\n" ++ e
 
                         QC.monitor (QC.counterexample model)
@@ -253,13 +252,13 @@ qc2 nm opC opS = [cf, sm]
                         let getCV vnm (SBV (SVal _ (Left c))) = (vnm, c)
                             getCV vnm (SBV (SVal k _       )) = error $ "qc2.getCV: Impossible happened, non-CV value while extracting: " ++ show (vnm, k)
 
-                            vals = M.fromList [ getCV "i1"       (literal i1)
-                                              , getCV "i2"       (literal i2)
-                                              , getCV "Expected" (literal expected)
-                                              ]
+                            vals = [ getCV "i1"       (literal i1)
+                                   , getCV "i2"       (literal i2)
+                                   , getCV "Expected" (literal expected)
+                                   ]
 
                             model = case result of
-                                      Right v -> showModel defaultSMTCfg (SMTModel [] Nothing (vals <> M.fromList [getCV "Result" (literal v)]) [])
+                                      Right v -> showModel defaultSMTCfg (SMTModel [] Nothing (vals <> [getCV "Result" (literal v)]) [])
                                       Left  e -> showModel defaultSMTCfg (SMTModel [] Nothing vals []) ++ "\n" ++ e
 
                         QC.monitor (QC.counterexample model)
