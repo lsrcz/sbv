@@ -44,7 +44,7 @@ module Data.SBV.Core.Data
  , sbvToSV, sbvToSymSV, forceSVArg
  , SBVExpr(..), newExpr
  , cache, Cached, uncache, uncacheAI, HasKind(..)
- , Op(..), PBOp(..), FPOp(..), StrOp(..), SeqOp(..), RegExp(..), NamedSymVar(..), getSV,getUserName', getTableIndex
+ , Op(..), PBOp(..), FPOp(..), StrOp(..), SeqOp(..), RegExp(..), NamedSymVar(..), getSV, getUserName', getTableIndex
  , SBVPgm(..), Symbolic, runSymbolic, State, getPathCondition, extendPathCondition
  , inSMTMode, SBVRunMode(..), Kind(..), Outputtable(..), Result(..)
  , SolverContext(..), internalVariable, internalConstraint, isCodeGenMode
@@ -70,9 +70,9 @@ import Data.Maybe             (fromMaybe)
 
 import Data.Proxy
 import Data.Typeable          (Typeable)
-import Data.Foldable          (foldr',foldl')
+import Data.Foldable          (foldr', foldl')
 
-import qualified Data.Generics as G    (Data(..))
+import qualified Data.Generics as G (Data(..))
 
 import qualified Data.IORef         as R    (readIORef, newIORef)
 import qualified Data.IntMap.Strict as IMap (size, insert, empty)

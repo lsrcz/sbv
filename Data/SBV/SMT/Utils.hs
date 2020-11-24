@@ -9,8 +9,8 @@
 -- A few internally used types/routines
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE BangPatterns   #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -117,7 +117,7 @@ mergeSExpr (x:xs)
 
        parenDiff :: String -> Int
        parenDiff = go 0
-         where go i ""       = i
+         where go i ""        = i
                go !i ('(':cs) = let i'= i+1 in i' `seq` go i' cs
                go !i (')':cs) = let i'= i-1 in i' `seq` go i' cs
                go !i ('"':cs) = go i (skipString cs)

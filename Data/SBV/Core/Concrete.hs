@@ -9,8 +9,8 @@
 -- Operations on concrete values
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
@@ -138,17 +138,17 @@ instance Ord CVal where
   (CTuple    !a) `compare` (CTuple    !b) = a        `compare`                  b
   (CMaybe    !a) `compare` (CMaybe    !b) = a        `compare`                  b
   (CEither   !a) `compare` (CEither   !b) = a        `compare`                  b
-  a           `compare` b           = let ra = cvRank a
-                                          rb = cvRank b
-                                      in if ra == rb
-                                            then error $ unlines [ ""
-                                                                 , "*** Data.SBV.Ord.CVal: Impossible happened: same rank in comparison fallthru"
-                                                                 , "***"
-                                                                 , "***   Received: " ++ show (ra, rb)
-                                                                 , "***"
-                                                                 , "*** Please report this as a bug!"
-                                                                 ]
-                                            else cvRank a `compare` cvRank b
+  a           `compare` b                 = let ra = cvRank a
+                                                rb = cvRank b
+                                            in if ra == rb
+                                                  then error $ unlines [ ""
+                                                                       , "*** Data.SBV.Ord.CVal: Impossible happened: same rank in comparison fallthru"
+                                                                       , "***"
+                                                                       , "***   Received: " ++ show (ra, rb)
+                                                                       , "***"
+                                                                       , "*** Please report this as a bug!"
+                                                                       ]
+                                                  else cvRank a `compare` cvRank b
 
 -- | 'CV' represents a concrete word of a fixed size:
 -- For signed words, the most significant digit is considered to be the sign.

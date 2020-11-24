@@ -23,10 +23,11 @@ module Data.SBV.Tools.Polynomial (
         Polynomial(..), crc, crcBV, ites, mdp, addPoly
         ) where
 
-import Data.Bits  (Bits(..))
-import Data.List  (genericTake)
-import Data.Maybe (fromJust, fromMaybe)
-import Data.Word  (Word8, Word16, Word32, Word64)
+import Data.Bits     (Bits(..))
+import Data.List     (genericTake)
+import Data.Maybe    (fromJust, fromMaybe)
+import Data.Word     (Word8, Word16, Word32, Word64)
+
 import Data.Foldable (foldr')
 
 import Data.SBV.Core.Data

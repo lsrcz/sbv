@@ -371,7 +371,6 @@ svGreaterEq x y
 
 -- | Bitwise and.
 svAnd :: SVal -> SVal -> SVal
-{-# INLINE svAnd #-}
 svAnd !x !y
   | isConcreteZero x = x
   | isConcreteOnes x = y
@@ -383,10 +382,10 @@ svAnd !x !y
           | a == trueSV                  = Just b
           | b == trueSV                  = Just a
           | True                         = Nothing
+{-# INLINE svAnd #-}
 
 -- | Bitwise or.
 svOr :: SVal -> SVal -> SVal
-{-# INLINE svOr #-}
 svOr x y
   | isConcreteZero x = y
   | isConcreteOnes x = x
@@ -399,6 +398,7 @@ svOr x y
           | a == falseSV               = Just b
           | b == falseSV               = Just a
           | True                       = Nothing
+{-# INLINE svOr #-}
 
 -- | Bitwise xor.
 svXOr :: SVal -> SVal -> SVal
@@ -1329,9 +1329,9 @@ liftSym2 :: (State -> Kind -> SV -> SV -> IO SV)
          -> (Float   -> Float   -> Float)
          -> (Double  -> Double  -> Double)
          -> SVal     -> SVal    -> SVal
-{-# INLINE liftSym2 #-}
 liftSym2 _   okCV opCR opCI opCF opCD   (SVal k (Left a)) (SVal _ (Left b)) | okCV a b = SVal k . Left  $! mapCV2 opCR opCI opCF opCD noCharLift2 noStringLift2 noUnint2 a b
 liftSym2 opS _    _    _    _    _    a@(SVal k _)        b                            = SVal k $ Right $! liftSV2 opS k a b
+{-# INLINE liftSym2 #-}
 
 liftSym2B :: (State -> Kind -> SV -> SV -> IO SV)
           -> (CV                  -> CV                  -> Bool)
@@ -1349,6 +1349,7 @@ liftSym2B :: (State -> Kind -> SV -> SV -> IO SV)
           -> SVal                 -> SVal                -> SVal
 liftSym2B _   okCV opCR opCI opCF opCD opCC opCS opCSeq opCTup opCMaybe opCEither opUI (SVal _ (Left a)) (SVal _ (Left b)) | okCV a b = svBool (liftCV2 opCR opCI opCF opCD opCC opCS opCSeq opCTup opCMaybe opCEither opUI a b)
 liftSym2B opS _    _    _    _    _    _    _    _      _      _        _         _    a                 b                            = SVal KBool $ Right $! liftSV2 opS KBool a b
+{-# INLINE liftSym2B #-}
 
 -- | Create a symbolic two argument operation; with shortcut optimizations
 mkSymOpSC :: (SV -> SV -> Maybe SV) -> Op -> State -> Kind -> SV -> SV -> IO SV

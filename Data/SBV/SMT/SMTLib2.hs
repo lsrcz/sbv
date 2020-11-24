@@ -9,9 +9,9 @@
 -- Conversion of symbolic programs to SMTLib format, Using v2 of the standard
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PatternGuards       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns        #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -21,7 +21,7 @@ import Data.Bits  (bit)
 import Data.List  (intercalate, partition, nub, sort)
 import Data.Maybe (listToMaybe, fromMaybe, catMaybes)
 
-import qualified Data.Foldable as F (toList,foldr')
+import qualified Data.Foldable as F (toList, foldr')
 import qualified Data.Map.Strict      as M
 import qualified Data.IntMap.Strict   as IM
 import           Data.Set             (Set)

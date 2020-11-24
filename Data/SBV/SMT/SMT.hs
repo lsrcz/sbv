@@ -9,13 +9,13 @@
 -- Abstraction of SMT solvers
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE DefaultSignatures          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE BangPatterns               #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -59,8 +59,9 @@ import System.Environment (getEnv)
 import System.Exit        (ExitCode(..))
 import System.IO          (hClose, hFlush)
 import Data.Text.IO       (hPutStrLn, hGetContents, hGetLine)
-import qualified Data.Text as T
 import System.Process     (runInteractiveProcess, waitForProcess, terminateProcess)
+
+import qualified Data.Text as T
 
 import qualified Data.Map.Strict as M
 

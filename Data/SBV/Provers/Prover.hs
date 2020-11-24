@@ -18,7 +18,7 @@
 {-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -55,7 +55,7 @@ import Data.List (intercalate, isPrefixOf, nub)
 import Data.Maybe (mapMaybe, listToMaybe)
 
 import qualified Data.Map.Strict as M
-import qualified Data.Foldable   as S (toList,foldr')
+import qualified Data.Foldable   as S (toList, foldr')
 
 import Data.Text (unpack)
 import Data.SBV.Core.Data

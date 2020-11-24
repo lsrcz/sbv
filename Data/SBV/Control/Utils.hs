@@ -16,9 +16,9 @@
 {-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE NamedFieldPuns         #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
-{-# LANGUAGE ViewPatterns           #-}
 {-# LANGUAGE TupleSections          #-}
 {-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE ViewPatterns           #-}
 
 {-# OPTIONS_GHC -Wall -Werror -fno-warn-orphans #-}
 

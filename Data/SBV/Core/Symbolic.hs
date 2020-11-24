@@ -9,6 +9,7 @@
 -- Symbolic values
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DefaultSignatures          #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
@@ -23,12 +24,10 @@
 {-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TupleSections              #-}
-{-# LANGUAGE BangPatterns               #-}
-{-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeOperators              #-}
-{-# LANGUAGE ViewPatterns               #-}
 {-# LANGUAGE UndecidableInstances       #-} -- for undetermined s in MonadState
+{-# LANGUAGE ViewPatterns               #-}
 
 {-# OPTIONS_GHC -Wall -Werror -fno-warn-orphans #-}
 
@@ -91,7 +90,7 @@ import qualified Control.Monad.Writer.Lazy   as LW
 import qualified Control.Monad.Writer.Strict as SW
 import qualified Data.IORef                  as R    (modifyIORef')
 import qualified Data.Generics               as G    (Data(..))
-import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, fromAscList, filter,toList)
+import qualified Data.IntMap.Strict          as IMap (IntMap, empty, toAscList, lookup, insertWith, insert, elems, fromList, fromAscList, filter, toList)
 import qualified Data.Map.Strict             as Map  (Map, empty, toList, lookup, insert, size)
 import qualified Data.Set                    as Set  (Set, empty, toList, insert, member)
 import qualified Data.Foldable               as F    (toList)
@@ -598,9 +597,9 @@ type UserName = T.Text
 data NamedSymVar = NamedSymVar !SV !T.Text
                  deriving (Eq,Show,Generic)
 
+-- | For comparison purposes, we simply use the SV and ignore the name
 instance Ord NamedSymVar where
   compare (NamedSymVar l _) (NamedSymVar r _) = compare l r
-
 
 -- | Convert to a named symvar, from string
 toNamedSV' :: SV -> String -> NamedSymVar
@@ -851,6 +850,8 @@ instance Show ArrayContext where
 -- | Expression map, used for hash-consing
 type ExprMap = Map.Map SBVExpr SV
 
+-- | Observables are stored in an intmap as well. Not necessarily for performance, as they
+-- don't occur frequently, but for consistency.
 type ObsvMap = IMap.IntMap (String, CV -> Bool, SV)
 
 -- | Constants are stored in a map, for hash-consing.
@@ -973,54 +974,52 @@ withNewIncState st cont = do
         !finalIncState <- readIORef (rIncState st)
         return (finalIncState, r)
 
+-- | User defined, with proper quantifiers
 type UserInps   = IMap.IntMap (Quantifier, NamedSymVar)
+
+-- | Internally declared, always existential
 type InternInps = Set.Set NamedSymVar
+
+-- | Entire set of names, for faster lookup
 type AllInps    = Set.Set UserName
 
--- | Inputs as a record of maps and sets
+-- | Inputs as a record of maps and sets. See above type-synonyms for their roles.
 data Inputs = Inputs { userInps   :: !UserInps
                      , internInps :: !InternInps
                      , allInps    :: !AllInps
                      } deriving (Eq,Ord,Show)
 
+-- | Semigroup instance; combining according to indexes.
 instance Semigroup Inputs where
-  (Inputs lui lii lai) <> (Inputs rui rii rai) =
-    let userInps   = lui <> rui
-        internInps = lii <> rii
-        allInps    = lai <> rai
-        in Inputs {..}
+  (Inputs lui lii lai) <> (Inputs rui rii rai) = Inputs (lui <> rui) (lii <> rii) (lai <> rai)
 
+-- | Monoid instance, we start with no maps.
 instance Monoid Inputs where
   mempty = Inputs { userInps   = mempty
                   , internInps = mempty
                   , allInps    = mempty
                   }
 
--- | avoiding lens dependency
+-- | Modify the user-inputs field
 onUserInps :: (UserInps -> UserInps) -> Inputs -> Inputs
-onUserInps f Inputs{..} = Inputs{ userInps   = f userInps
-                                , internInps = internInps
-                                , allInps    = allInps
-                                }
+onUserInps f inp@Inputs{userInps} = inp{userInps = f userInps}
 
+-- | Modify the internal-inputs field
 onInternInps :: (InternInps -> InternInps) -> Inputs -> Inputs
-onInternInps f Inputs{..} = Inputs{ userInps   = userInps
-                                  , internInps = f internInps
-                                  , allInps    = allInps
-                                  }
+onUserInps f inp@Inputs{internInps} = inp{internInps = f internInps}
 
+-- | Modify the all-inputs field
 onAllInps :: (AllInps -> AllInps) -> Inputs -> Inputs
-onAllInps f Inputs{..} = Inputs{ userInps   = userInps
-                               , internInps = internInps
-                               , allInps    = f allInps
-                               }
+onUserInps f inp@Inputs{allInps} = inp{allInps = f allInps}
 
+-- | Add a new internal input
 addInternInput :: SV -> UserName -> Inputs -> Inputs
 addInternInput sv nm = goAll . goIntern
   where !new = toNamedSV sv nm
         goIntern = onInternInps (Set.insert new)
         goAll    = onAllInps    (Set.insert nm)
 
+-- | Add a new user input
 addUserInput :: Quantifier -> SV -> UserName -> Inputs -> Inputs
 addUserInput q sv nm = goAll . goUser
   where !new = toNamedSV sv nm
@@ -1028,55 +1027,55 @@ addUserInput q sv nm = goAll . goUser
         goUser = onUserInps (nid `IMap.insert` (q, new))
         goAll  = onAllInps  (Set.insert nm)
 
--- TODO add once old String code has been pushed to edges
--- addNamedUserInput :: Quantifier -> NamedSymVar -> Inputs -> Inputs
--- addNamedUserInput q new = goAll . goUser
---   where goUser          = onUserInps (nid `IMap.insert` (q, new))
---         goAll           = onAllInps  (Set.insert (getUserName new))
---         (NodeId nid)    = swNodeId . getSV $ new
-
+-- | Return user and internal inputs
 getInputs :: Inputs -> (UserInps, InternInps)
-getInputs Inputs{..} = (userInps, internInps)
+getInputs Inputs{userInps, internInps} = (userInps, internInps)
 
+-- | Find a user-input from its SV
 lookupUserInputs :: SV -> UserInps -> (Quantifier, NamedSymVar)
 lookupUserInputs (swNodeId -> (NodeId i)) ui = res
   where res = case IMap.lookup i ui of
                 Nothing -> error "Tried to lookup a user input that doesn't exist!"
                 Just x  -> x
 
+-- | Extract existentials
 getExistentials :: UserInps -> [NamedSymVar]
-getExistentials = IMap.elems . fmap snd . IMap.filter ((==EX) . fst)
+getExistentials = IMap.elems . fmap snd . IMap.filter ((== EX) . fst)
 
+-- | Extract universals
 getUniversals :: UserInps -> [NamedSymVar]
-getUniversals = IMap.elems . fmap snd . IMap.filter ((==ALL) . fst)
+getUniversals = IMap.elems . fmap snd . IMap.filter ((== ALL) . fst)
 
+-- | Convert to regular lists
 inpsToLists :: Inputs -> ([(Quantifier, NamedSymVar)], [NamedSymVar])
 inpsToLists =  (uInpsToList *** internInpsToList) . getInputs
 
--- | get a prefix of the user inputs by a predicate. Note that we could not rely
--- on fusion here but this is cheap and easy until there is an observable slow
--- down from not fusing
+-- | Get a prefix of the user inputs by a predicate. Note that we could not rely
+-- on fusion here but this is cheap and easy until there is an observable slow down from not fusing.
 uInpsPrefixBy :: ((Quantifier, NamedSymVar) -> Bool) -> UserInps -> UserInps
 uInpsPrefixBy p = IMap.fromAscList . takeWhile (p . snd) . IMap.toList
 
+-- | Find prefix existentials, i.e., those that are at skolem positions and have valid model values.
 prefixExistentials :: UserInps -> UserInps
 prefixExistentials = uInpsPrefixBy ((/= ALL) . fst)
 
+-- | Find prefix universals. Corresponds to the above in a proof context.
 prefixUniversals :: UserInps -> UserInps
 prefixUniversals = uInpsPrefixBy ((== ALL) . fst)
 
+-- | Conversion from named-symvars to user-inputs
 inpsFromListWith :: (NamedSymVar -> Quantifier) -> [NamedSymVar] -> UserInps
 inpsFromListWith f = IMap.fromList . fmap go
   where go n = (getId $ namedSymNodeId n, (f n, n))
 
--- TODO remove these functions once lists have been pushed to edges of code base
--- | helper functions around inputs
+-- | Helper functions around inputs.
+-- TODO: remove these functions once lists have been pushed to edges of code base.
 uInpsToList :: UserInps -> [(Quantifier, NamedSymVar)]
 uInpsToList = IMap.elems
 
+-- | Conversion from internal-inputs to list of named sym vars
 internInpsToList :: InternInps -> [NamedSymVar]
 internInpsToList = Set.toList
-
 
 -- | The state of the symbolic interpreter
 data State  = State { pathCond     :: SVal                             -- ^ kind KBool
@@ -1374,6 +1373,7 @@ newConst st !c = do
                   let ins = Map.insert c sv
                   modifyState st rconstMap ins $! modifyIncState st rNewConsts ins
                   return sv
+{-# INLINE newConst #-}
 
 -- | Create a new table; hash-cons as necessary
 getTableIndex :: State -> Kind -> Kind -> [SV] -> IO Int
@@ -1404,16 +1404,19 @@ newExpr st k app = do
                                     modifyState st spgm append $ modifyIncState st rNewAsgns append
                                     modifyState st rexprMap (Map.insert e sv) (return ())
                                     return sv
+{-# INLINE newExpr #-}
 
 -- | Convert a symbolic value to an internal SV
 svToSV :: State -> SVal -> IO SV
 svToSV st (SVal _ (Left c))  = newConst st c
 svToSV st (SVal _ (Right f)) = uncache f st
+{-# INLINE svToSV #-}
 
 -- | Generalization of 'Data.SBV.svToSymSV'
 svToSymSV :: MonadSymbolic m => SVal -> m SV
 svToSymSV sbv = do !st <- symbolicEnv
                    liftIO $! svToSV st sbv
+{-# INLINE svToSymSV #-}
 
 -------------------------------------------------------------------------
 -- * Symbolic Computations
@@ -1698,8 +1701,6 @@ extractSymbolicSimulationState st@State{ spgm=pgm, rinps=inps, routs=outs, rtblM
                                        , rObservables=observes
                                        } = do
    SBVPgm rpgm  <- readIORef pgm
-   -- TODO [REVERSAL] the reversal that breaks the ordering constraint could be right here!
-   -- inpsO <- (reverse *** reverse) . fst <$> readIORef inps
    inpsO <- inpsToLists <$> readIORef inps
    outsO <- reverse <$> readIORef outs
 

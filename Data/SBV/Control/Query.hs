@@ -9,13 +9,13 @@
 -- Querying a solver interactively.
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE ViewPatterns        #-}
-{-# LANGUAGE TupleSections #-}
 
 {-# OPTIONS_GHC -Wall -Werror -fno-warn-orphans #-}
 
@@ -320,27 +320,24 @@ getModelAtIndex mbi = do
           uis   <- getUIs
 
            -- for "sat", display the prefix existentials. for "proof", display the prefix universals
-          let
-            allModelInputs = if isSAT
-                             then prefixExistentials qinps
-                             else prefixUniversals   qinps
-              -- Add on observables only if we're not in a quantified context
-            grabObservables = IM.size allModelInputs == IM.size qinps -- i.e., we didn't drop anything
+          let allModelInputs = if isSAT
+                               then prefixExistentials qinps
+                               else prefixUniversals   qinps
+               -- Add on observables only if we're not in a quantified context
+              grabObservables = IM.size allModelInputs == IM.size qinps -- i.e., we didn't drop anything
 
           obsvs <- if grabObservables
                    then getObservables
                    else queryDebug ["*** In a quantified context, obvservables will not be printed."] >> return mempty
 
-          let
-            grab :: (MonadIO m, MonadQuery m) => NamedSymVar -> m (String, CV)
-            grab (NamedSymVar sv nm) = wrap <$> theCV
-                 where
-                   theCV :: (MonadIO m, MonadQuery m) => m CV
-                   !theCV = getValueCV mbi sv
+          let grab :: (MonadIO m, MonadQuery m) => NamedSymVar -> m (String, CV)
+              grab (NamedSymVar sv nm) = wrap <$> theCV
+                where theCV :: (MonadIO m, MonadQuery m) => m CV
+                      !theCV = getValueCV mbi sv
 
-                   wrap :: CV -> (String, CV)
-                   wrap !c = (name, c)
-                     where !name = unpack nm
+                      wrap :: CV -> (String, CV)
+                      wrap !c = (name, c)
+                        where !name = unpack nm
 
           !inputAssocs <- mapM (grab . snd) allModelInputs
 
@@ -356,7 +353,7 @@ getModelAtIndex mbi = do
                   Nothing   -> return ()
                   Just cmds -> mapM_ (send True) cmds
 
-          bindings <- let get i@(ALL, _)      = return (i, Nothing)
+          bindings <- let get i@(ALL, _)          = return (i, Nothing)
                           get i@(EX, getSV -> sv) = case getId (swNodeId sv) `IM.lookup` inputAssocs of
                                                       Just (_, cv) -> return (i, Just cv)
                                                       Nothing      -> do !cv <- getValueCV mbi sv
@@ -404,7 +401,7 @@ getObjectiveValues = do let cmd = "(get-objectives)"
                   _                 -> dontUnderstand (show expr)
 
           where locate nm v = case listToMaybe [p | p@(NamedSymVar sv _) <- inputs, show sv == nm] of
-                                Nothing               -> return Nothing -- Happens when the soft assertion has a group-id that's not one of the input names
+                                Nothing                                      -> return Nothing -- Happens when the soft assertion has a group-id that's not one of the input names
                                 Just (NamedSymVar sv (unpack -> actualName)) -> grab sv v >>= \val -> return $ Just (actualName, val)
 
                 dontUnderstand s = bailOut $ Just [ "Unable to understand solver output."
@@ -785,7 +782,7 @@ mkSMTResult asgns = do
 
                                         missing, extra, dup :: [String]
                                         missing = [getUserName' nm | (EX, nm) <- inps, getSV nm `notElem` userSS]
-                                        extra   = [show s | s <- userSS, s `notElem` map (getSV . snd) inps]
+                                        extra   = [show s          | s <- userSS, s `notElem` map (getSV . snd) inps]
                                         dup     = let walk []     = []
                                                       walk (n:ns)
                                                         | n `elem` ns = show n : walk (filter (/= n) ns)

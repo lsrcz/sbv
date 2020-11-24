@@ -14,10 +14,10 @@
 -- bounded prefix of this list, at which point these functions come in handy.
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE BangPatterns        #-}
 
 {-# OPTIONS_GHC -Wall -Werror #-}
 
@@ -119,8 +119,8 @@ bzipWith :: (SymVal a, SymVal b, SymVal c) => Int -> (SBV a -> SBV b -> SBV c) -
 bzipWith !cnt f = go (cnt `max` 0)
    where go 0  _  _  = []
          go !i xs ys = ite (L.null xs .|| L.null ys)
-                          []
-                          (f (L.head xs) (L.head ys) .: go (i-1) (L.tail xs) (L.tail ys))
+                           []
+                           (f (L.head xs) (L.head ys) .: go (i-1) (L.tail xs) (L.tail ys))
 
 -- | Bounded element check
 belem :: (Eq a, SymVal a) => Int -> SBV a -> SList a -> SBool

@@ -21,6 +21,7 @@ import Data.Either (partitionEithers)
 import Data.List   (isPrefixOf)
 import Data.Maybe  (fromMaybe, listToMaybe)
 import Data.Word   (Word32, Word64)
+
 import Data.Foldable (foldr')
 
 import Numeric    (readInt, readDec, readHex, fromRat)

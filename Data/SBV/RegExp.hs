@@ -73,9 +73,6 @@ import Data.SBV.Char
 -- >>> :set -XScopedTypeVariables
 
 -- | Matchable class. Things we can match against a 'RegExp'.
--- (TODO: Currently SBV does *not* optimize this call if the input is a concrete string or
--- a character, but rather directly calls down to the solver. We might want to perform the
--- operation on the Haskell side for performance reasons, should this become important.)
 --
 -- For instance, you can generate valid-looking phone numbers like this:
 --
