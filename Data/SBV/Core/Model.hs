@@ -62,7 +62,6 @@ import Data.Maybe  (fromMaybe, mapMaybe)
 import Data.String (IsString(..))
 import Data.Word   (Word8, Word16, Word32, Word64)
 
-import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
 import Data.Proxy
@@ -2475,7 +2474,7 @@ instance Testable SBool where
 instance Testable (Symbolic SBool) where
    property prop = QC.monadicIO $ do (cond, r, modelVals) <- QC.run test
                                      QC.pre cond
-                                     unless (r || null modelVals) $ QC.monitor (QC.counterexample (complain $ Map.fromList modelVals))
+                                     unless (r || null modelVals) $ QC.monitor (QC.counterexample (complain modelVals))
                                      QC.assert r
      where test = do (r, Result{resTraces=tvals, resObservables=ovals, resConsts=cs, resConstraints=cstrs, resUIConsts=unints}) <- runSymbolic (Concrete Nothing) prop
 

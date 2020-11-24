@@ -344,8 +344,7 @@ getModelAtIndex mbi = do
 
           !inputAssocs <- mapM (grab . snd) allModelInputs
 
-          let --TODO this is a map merge through a list, just do the map merge
-              !assocs    = obsvs <> inputAssocs
+          let assocs = obsvs <> inputAssocs
 
 
           -- collect UIs, and UI functions if requested
@@ -381,7 +380,7 @@ getModelAtIndex mbi = do
 
           return SMTModel { modelObjectives = []
                           , modelBindings   = IM.elems <$> bindings
-                          , modelAssocs     = M.fromList $ uiVals <> IM.elems assocs
+                          , modelAssocs     = uiVals <> IM.elems assocs
                           , modelUIFuns     = uiFunVals
                           }
 
@@ -834,7 +833,7 @@ mkSMTResult asgns = do
 
              let m = SMTModel { modelObjectives = []
                               , modelBindings   = Nothing
-                              , modelAssocs     = M.fromList assocs
+                              , modelAssocs     = assocs
                               , modelUIFuns     = []
                               }
 

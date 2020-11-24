@@ -1225,7 +1225,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                        let nameAssocs = obsvs <> fmap (\(name,(_,concreteVal)) -> (name, concreteVal)) assocs
                                            model = SMTModel { modelObjectives = []
                                                             , modelBindings   = IMap.elems <$> bindings
-                                                            , modelAssocs     = Map.fromList . F.toList $ nameAssocs
+                                                            , modelAssocs     = F.toList nameAssocs
                                                             , modelUIFuns     = uiFunVals
                                                             }
                                            m = Satisfiable cfg model

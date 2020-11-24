@@ -450,8 +450,8 @@ instance Modelable SMTResult where
   modelExists _               = False
 
   getModelDictionary Unsatisfiable{}     = M.empty
-  getModelDictionary (Satisfiable _   m) = modelAssocs m
-  getModelDictionary (DeltaSat    _ _ m) = modelAssocs m
+  getModelDictionary (Satisfiable _   m) = M.fromList (modelAssocs m)
+  getModelDictionary (DeltaSat    _ _ m) = M.fromList (modelAssocs m)
   getModelDictionary SatExtField{}       = M.empty
   getModelDictionary Unknown{}           = M.empty
   getModelDictionary ProofError{}        = M.empty
@@ -472,7 +472,7 @@ instance Modelable SMTResult where
 
 -- | Extract a model out, will throw error if parsing is unsuccessful
 parseModelOut :: SatModel a => SMTModel -> a
-parseModelOut m = case parseCVs (M.elems $ modelAssocs m) of
+parseModelOut m = case parseCVs (snd <$> modelAssocs m) of
                    Just (x, []) -> x
                    Just (_, ys) -> error $ "SBV.parseModelOut: Partially constructed model; remaining elements: " ++ show ys
                    Nothing      -> error $ "SBV.parseModelOut: Cannot construct a model from: " ++ show m
@@ -493,7 +493,7 @@ displayModels arrange disp AllSatResult{allSatResults = ms} = do
 showSMTResult :: String -> String -> String -> String -> (Maybe String -> String) -> String -> SMTResult -> String
 showSMTResult unsatMsg unkMsg satMsg satMsgModel dSatMsgModel satExtMsg result = case result of
   Unsatisfiable _ uc                               -> unsatMsg ++ showUnsatCore uc
-  Satisfiable _ (SMTModel _ _ (M.null -> True) []) -> satMsg
+  Satisfiable _ (SMTModel _ _ [] []) -> satMsg
   Satisfiable _   m                                -> satMsgModel    ++ showModel cfg m
   DeltaSat    _ p m                                -> dSatMsgModel p ++ showModel cfg m
   SatExtField _ (SMTModel b _ _ _)                 -> satExtMsg   ++ showModelDictionary True False cfg b
@@ -519,7 +519,7 @@ showModel cfg model
    = nonUIFuncs
    | True
    = sep nonUIFuncs ++ intercalate "\n\n" (map (showModelUI cfg) uiFuncs)
-   where nonUIFuncs = showModelDictionary (null uiFuncs) False cfg [(n, RegularCV c) | (n, c) <- M.toList $ modelAssocs model]
+   where nonUIFuncs = showModelDictionary (null uiFuncs) False cfg [(n, RegularCV c) | (n, c) <- modelAssocs model]
          uiFuncs    = modelUIFuns model
          sep ""     = ""
          sep x      = x ++ "\n\n"
