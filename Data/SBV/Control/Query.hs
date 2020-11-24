@@ -344,9 +344,6 @@ getModelAtIndex mbi = do
 
           !inputAssocs <- mapM (grab . snd) allModelInputs
 
-          let assocs = obsvs <> inputAssocs
-
-
           -- collect UIs, and UI functions if requested
           let uiFuns = [ui | ui@(nm, SBVType as) <- uis, length as >  1, satTrackUFs cfg, not (isNonModelVar cfg nm)] -- functions have at least two things in their type!
               uiRegs = [ui | ui@(nm, SBVType as) <- uis, length as == 1,                  not (isNonModelVar cfg nm)]
@@ -380,7 +377,7 @@ getModelAtIndex mbi = do
 
           return SMTModel { modelObjectives = []
                           , modelBindings   = IM.elems <$> bindings
-                          , modelAssocs     = uiVals <> IM.elems assocs
+                          , modelAssocs     = IM.elems obsvs <> uiVals <> IM.elems inputAssocs
                           , modelUIFuns     = uiFunVals
                           }
 

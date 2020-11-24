@@ -1222,7 +1222,7 @@ getAllSatResult = do queryDebug ["*** Checking Satisfiability, all solutions.."]
                                                          then Just <$> mapM grab qinps
                                                          else return Nothing
 
-                                       let nameAssocs = obsvs <> fmap (\(name,(_,concreteVal)) -> (name, concreteVal)) assocs
+                                       let nameAssocs = obsvs <> fmap (\(name, (_, concreteVal)) -> (name, concreteVal)) assocs
                                            model = SMTModel { modelObjectives = []
                                                             , modelBindings   = IMap.elems <$> bindings
                                                             , modelAssocs     = F.toList nameAssocs
