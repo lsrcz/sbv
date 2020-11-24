@@ -1041,6 +1041,7 @@ checkSatUsing cmd = do let bad = unexpected "checkSat" cmd "one of sat/unsat/unk
                                            ECon "delta-sat" -> DSat <$> getPrecision
                                            _                -> bad r Nothing
 
+-- | Get the quantified inputs from the user-inputs
 getQuantifiedInputs :: (MonadIO m, MonadQuery m) => m UserInps
 getQuantifiedInputs = do State{rinps} <- queryState
                          (rQinps, rTrackers) <- liftIO $ getInputs <$> readIORef rinps

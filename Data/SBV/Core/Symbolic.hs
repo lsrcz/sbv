@@ -49,7 +49,7 @@ module Data.SBV.Core.Symbolic
   , NamedSymVar(..), getSV, swNodeId, namedSymNodeId, getUserName, getUserName'
   , getSValPathCondition, extendSValPathCondition
   , getTableIndex
-  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, prefixExistentials, prefixUniversals, lookupUserInputs, inpsFromListWith, uInpsPrefixBy, getUniversals, getExistentials
+  , Inputs(..), UserInps, getInputs, uInpsToList, internInpsToList, prefixExistentials, prefixUniversals, lookupUserInputs, inpsFromListWith, uInpsPrefixBy, getUniversals
   , SBVPgm(..), MonadSymbolic(..), SymbolicT, Symbolic, runSymbolic, State(..), withNewIncState, IncState(..), incrementInternalCounter
   , inSMTMode, SBVRunMode(..), IStage(..), Result(..)
   , registerKind, registerLabel, recordObservable
@@ -975,13 +975,13 @@ withNewIncState st cont = do
         return (finalIncState, r)
 
 -- | User defined, with proper quantifiers
-type UserInps   = IMap.IntMap (Quantifier, NamedSymVar)
+type UserInps = IMap.IntMap (Quantifier, NamedSymVar)
 
 -- | Internally declared, always existential
 type InternInps = Set.Set NamedSymVar
 
 -- | Entire set of names, for faster lookup
-type AllInps    = Set.Set UserName
+type AllInps = Set.Set UserName
 
 -- | Inputs as a record of maps and sets. See above type-synonyms for their roles.
 data Inputs = Inputs { userInps   :: !UserInps
@@ -1037,10 +1037,6 @@ lookupUserInputs (swNodeId -> (NodeId i)) ui = res
   where res = case IMap.lookup i ui of
                 Nothing -> error "Tried to lookup a user input that doesn't exist!"
                 Just x  -> x
-
--- | Extract existentials
-getExistentials :: UserInps -> [NamedSymVar]
-getExistentials = IMap.elems . fmap snd . IMap.filter ((== EX) . fst)
 
 -- | Extract universals
 getUniversals :: UserInps -> [NamedSymVar]
