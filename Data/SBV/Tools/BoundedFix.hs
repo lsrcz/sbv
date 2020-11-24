@@ -66,8 +66,8 @@ import Data.SBV
 --
 -- >>> prove $ \n -> n .== 10 .=> observe "bfac_n" (bfac n) .== observe "bfac_10" (bfac 10)
 -- Falsifiable. Counter-example:
---   bfac_10 = 3628800 :: Integer
 --   bfac_n  = 7257600 :: Integer
+--   bfac_10 = 3628800 :: Integer
 --   s0      =      10 :: Integer
 -- <BLANKLINE>
 --   fac :: Integer -> Integer
