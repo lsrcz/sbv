@@ -1,5 +1,4 @@
 Optimal model:
-  max-x =   0xff7fffff :: Word32
   x     = 3.4028235e38 :: Float
                   3  2          1         0
                   1 09876543 21098765432109876543210
@@ -11,3 +10,4 @@ Optimal model:
         Exponent: 127 (Stored: 254, Bias: 127)
        Hex-float: +0x1.fffffep127
            Value: +3.4028235e38 (NORMAL)
+  max-x =   0xff7fffff :: Word32

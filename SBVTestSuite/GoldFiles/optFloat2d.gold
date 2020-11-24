@@ -1,5 +1,4 @@
 Optimal model:
-  max-y = 0xfff0000000000000 :: Word64
   x     =           Infinity :: Double
                   6    5          4         3         2         1         0
                   3 21098765432 1098765432109876543210987654321098765432109876543210
@@ -11,3 +10,4 @@ Optimal model:
         Exponent: 1024 (Stored: 2047, Bias: 1023)
        Hex-float: +Infinity
            Value: +Infinity
+  max-y = 0xfff0000000000000 :: Word64
