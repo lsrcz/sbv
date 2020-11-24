@@ -1006,11 +1006,11 @@ onUserInps f inp@Inputs{userInps} = inp{userInps = f userInps}
 
 -- | Modify the internal-inputs field
 onInternInps :: (InternInps -> InternInps) -> Inputs -> Inputs
-onUserInps f inp@Inputs{internInps} = inp{internInps = f internInps}
+onInternInps f inp@Inputs{internInps} = inp{internInps = f internInps}
 
 -- | Modify the all-inputs field
 onAllInps :: (AllInps -> AllInps) -> Inputs -> Inputs
-onUserInps f inp@Inputs{allInps} = inp{allInps = f allInps}
+onAllInps f inp@Inputs{allInps} = inp{allInps = f allInps}
 
 -- | Add a new internal input
 addInternInput :: SV -> UserName -> Inputs -> Inputs
