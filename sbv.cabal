@@ -358,8 +358,8 @@ Test-Suite SBVConnections
 
 Test-Suite SBVDocTest
     import          : common-settings
-    build-depends   : base, directory, filepath, random, containers
-                    , doctest, Glob, bytestring, tasty, tasty-golden, tasty-hunit, tasty-quickcheck, mtl, QuickCheck, random, sbv
+    build-depends   : base, directory, filepath, random, doctest, Glob, bytestring, tasty, tasty-golden
+                    , tasty-hunit, tasty-quickcheck, mtl, QuickCheck, random, sbv
     other-extensions: DataKinds
                       DeriveAnyClass
                       DeriveDataTypeable
@@ -382,8 +382,8 @@ Test-Suite SBVDocTest
 Test-Suite SBVHLint
     import          : common-settings
 
-    build-depends   : base, directory, filepath, random, containers
-                    , hlint, bytestring, tasty, tasty-golden, tasty-hunit, tasty-quickcheck, mtl, QuickCheck, sbv
+    build-depends   : base, directory, filepath, random, hlint, bytestring, tasty, tasty-golden
+                    , tasty-hunit, tasty-quickcheck, mtl, QuickCheck, sbv
     other-extensions: DataKinds
                       DeriveAnyClass
                       DeriveDataTypeable
