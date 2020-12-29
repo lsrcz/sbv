@@ -19,7 +19,8 @@ import           Gauge.Main.Options (defaultConfig, Config(..))
 
 -- import           Utils.SBVBenchFramework
 
-import Documentation.SBV.Examples.Puzzles.Counts
+import Documentation.SBV.Examples.Puzzles.NQueens
+import Documentation.SBV.Examples.BitPrecise.BrokenSearch
 
 -- | Custom config to limit benchmarks to 5 minutes of runtime. This is required
 -- because we can easily generate benchmarks that take a lot of wall time to
@@ -54,7 +55,8 @@ main = do
 
   -- Your code on interest here
   putStrLn "running"
-  counts
+  nQueens 11
+  -- checkArithOverflow midPointBroken
 
   -- satisfying the type system
   -- return ()

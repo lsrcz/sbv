@@ -521,7 +521,7 @@ Benchmark SBVBenchmark
 Benchmark SBVBench
   import          : common-settings
   type            : exitcode-stdio-1.0
-  ghc-options     : -with-rtsopts=-K64m
+  ghc-options     : -rtsopts
   other-extensions: DataKinds
                     DeriveAnyClass
                     DeriveDataTypeable
@@ -536,7 +536,7 @@ Benchmark SBVBench
                     TemplateHaskell
                     TupleSections
                     TypeApplications
-  build-depends   : filepath, syb, crackNum
+  build-depends   : filepath, syb, crackNum, text
                   , sbv, directory, random, mtl, containers, time
                   , gauge, process, deepseq, silently, bench-show
   hs-source-dirs  : SBVBenchSuite
