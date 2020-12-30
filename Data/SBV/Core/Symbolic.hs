@@ -1861,7 +1861,7 @@ uncacheGen getCache (Cached f) st = do
           Just r  -> return r
           Nothing -> do r <- f st
                         r `seq` R.modifyIORef' rCache (IMap.insertWith (++) h [(sn, r)])
-                        return r
+                          `seq` return r
 
 -- | Representation of SMTLib Program versions. As of June 2015, we're dropping support
 -- for SMTLib1, and supporting SMTLib2 only. We keep this data-type around in case
