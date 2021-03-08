@@ -36,6 +36,7 @@ SBV library provides support for dealing with symbolic values in Haskell. It int
   - `SReal`: Symbolic infinite precision algebraic reals (signed).
   - `SFloat`: IEEE-754 single precision floating point number. (`Float`.)
   - `SDouble`: IEEE-754 double precision floating point number. (`Double.`)
+  - `SFloatingPoint`: IEEE-754 floating point number with user specified exponent and significand sizes. (`FloatingPoint`)
   - `SChar`: Symbolic characters. (Currently Latin-1, but will be unicode in the future.)
   - `SString`: Symbolic strings.
   - `SList`: Symbolic lists. (Which can be nested, i.e., lists of lists.)
