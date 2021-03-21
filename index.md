@@ -34,6 +34,7 @@ SBV library provides support for dealing with symbolic values in Haskell. It int
   - `SWord N`, `SInt N`, for N > 0: Arbitrary sized unsigned/signed bit-vectors, parameterized by the bitsize. (Using DataKinds extension.)
   - `SInteger`: Symbolic unbounded integers (signed).
   - `SReal`: Symbolic infinite precision algebraic reals (signed).
+  - `SRational`: Symbolic rationals, ratio of two symbolic integers. (`Rational`.)
   - `SFloat`: IEEE-754 single precision floating point number. (`Float`.)
   - `SDouble`: IEEE-754 double precision floating point number. (`Double.`)
   - `SFloatingPoint`: IEEE-754 floating point number with user specified exponent and significand sizes. (`FloatingPoint`)
