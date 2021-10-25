@@ -23,7 +23,7 @@ based on the current model, and access to internals of SMT solvers for advanced 
 Overview
 ========
 
-  - [Hackage](http://hackage.haskell.org/package/sbv) (Version 8.16. Released: Aug 18th, 2021.)
+  - [Hackage](http://hackage.haskell.org/package/sbv) (Version 8.17. Released: Oct 25th, 2021.)
   - [Release Notes](http://github.com/LeventErkok/sbv/tree/master/CHANGES.md). 
 
 SBV library provides support for dealing with symbolic values in Haskell. It introduces the types:
@@ -72,7 +72,8 @@ are supported:
 
   - [ABC](http://www.eecs.berkeley.edu/~alanmi/abc/) from University of Berkeley
   - [Boolector](http://fmv.jku.at/boolector/) from Johannes Kepler University
-  - [CVC4](http://cvc4.github.io/) from Stanford University and the University of Iowa
+  - [Bitwuzla](http://bitwuzla.github.io/) from Stanford University
+  - [CVC4](http://cvc4.github.io/) and [CVC5](http://cvc5.github.io/) from Stanford University and the University of Iowa
   - [DReal](http://dreal.github.com) from CMU
   - [MathSAT](http://mathsat.fbk.eu/) from FBK and DISI-University of Trento
   - [Yices](http://yices.csl.sri.com) from SRI
