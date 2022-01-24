@@ -80,7 +80,7 @@ are supported:
   - [Z3](http://github.com/Z3Prover/z3/wiki) from Microsoft
  
 Most functions have two variants: For instance `prove`/`proveWith`. The former uses the default solver, which is currently Z3.
-The latter expects you to pass it a configuration that picks the solver. The valid values are `abc`, `boolector`, `cvc4`, `mathSAT`, `yices`, and `z3`.
+The latter expects you to pass it a configuration that picks the solver. The valid values are
 `abc`, `boolector`, `bitwuzla`, `cvc4`, `cvc5`, `dReal`, `mathSAT`, `yices`, and `z3`
 
 See [versions](http://github.com/LeventErkok/sbv/blob/master/SMTSolverVersions.md) for a listing of the versions of these tools SBV has been tested with. Please report if you see any discrepancies!
